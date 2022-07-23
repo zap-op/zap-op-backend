@@ -7,5 +7,10 @@
     "start": "nodemon server.js"
   },
   "author": "Huy Pham",
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "dotenv": "^16.0.1",
+    "nodemon": "^2.0.19",
+    "zaproxy": "^1.0.1"
+  }
 }
