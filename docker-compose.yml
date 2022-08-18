@@ -1,0 +1,10 @@
+version: '3.4'
+
+services:
+  zapopbackend:
+    image: zapopbackend
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    ports:
+      - 8888:8888

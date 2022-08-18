@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "description": "",
   "type": "module",
-  "main": "server.js",
+  "main": "src/server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node src/server.js"
   },
   "author": "Huy Pham",
   "license": "ISC",
@@ -15,6 +15,7 @@
     "express": "^4.18.1",
     "mongoose": "^6.5.2",
     "protobufjs": "^7.0.0",
+    "rxjs": "^7.5.6",
     "uuid": "^8.3.2",
     "validator": "^13.7.0",
     "zaproxy": "^1.0.1"

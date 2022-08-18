@@ -56,7 +56,7 @@ app.use((req, res) => {
     res.status(404).send({ msg: req.originalUrl + ' not found' });
 })
 
-const port = process.env.PORT || 8080;
+const port = process.env.PORT || 8888;
 const server = app.listen(port, () => {
     const host = server.address().address;
     const port = server.address().port;
