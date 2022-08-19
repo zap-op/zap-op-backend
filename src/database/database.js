@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import addJsonSchema from 'mongoose-schema-jsonschema';
 
 let database = undefined;
 
@@ -12,12 +13,12 @@ const connect = async function() {
                 console.error('Mongo connection error');
                 await connect();
             });
-        }
-        catch(err) {
+        } catch (err) {
             console.error(`Failed to connect mongo, error: ${err}`);
         }
     }
 };
 await connect();
+addJsonSchema(database);
 
 export default database;
