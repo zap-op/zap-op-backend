@@ -12,6 +12,10 @@ const app = express();
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
+// CONFIG CORS POLICY
+import cors from 'cors';
+app.use(cors());
+
 import { initRoutes } from './apis/route.js';
 initRoutes(app);
 

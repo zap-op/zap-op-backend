@@ -15,7 +15,7 @@ export const spiderSessionSchema = new database.Schema({
     },
     maxChildren: {
         type: Number,
-        min: 1
+        min: 0
     },
     recurse: Boolean,
     subtreeOnly: Boolean,

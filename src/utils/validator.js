@@ -7,3 +7,10 @@ export function isValidURL(urlString) {
         allow_underscores: true 
     });
 }
+
+export function isValidJWT(jwtString) {
+    // validate logic
+
+    // hard code
+    return false;
+}
