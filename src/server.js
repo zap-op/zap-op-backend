@@ -14,7 +14,14 @@ app.use(express.json());
 
 // CONFIG CORS POLICY
 import cors from 'cors';
-app.use(cors());
+app.use(cors({
+	origin: 'http://localhost:3000',
+	credentials: true
+}));
+
+// CONFIG Cookie Parser to work with cookie
+import cookieParser from 'cookie-parser';
+app.use(cookieParser());
 
 import { initRoutes } from './apis/route.js';
 initRoutes(app);

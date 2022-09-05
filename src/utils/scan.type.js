@@ -1,6 +1,6 @@
 const SCAN_TYPE = {
     ZAP: {
-        spider: "Spider"
+        SPIDER: "TS_ZAP"
     }
 }
 
