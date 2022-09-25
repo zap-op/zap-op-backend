@@ -47,7 +47,6 @@ spiderScanRouter.get('/', async (req, res) => {
         console.log(error);
         res.write(JSON.stringify(SCAN_STATUS.INVALID_SESSION));
     }
-
 });
 
 const spiderScanRouterFactor = {

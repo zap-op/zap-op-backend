@@ -41,20 +41,21 @@ class ZAPService {
             try {
                 let scanProgress = await this.#service.spider.status(scanId)
                     .then((result) => {
-                        return result.status;
+                        return parseInt(result.status);
                     });
                 let preResults = [];
                 let preScanProgress = 0;
-                while (scanProgress < 100) {
-                    await new Promise(res => setTimeout(res, 1000));
+                const timeInterval = 1000;
+                const emitInterval = setInterval(async () => {
                     scanProgress = await this.#service.spider.status(scanId)
                         .then((result) => {
-                            return result.status;
+                            return parseInt(result.status);
                         });
                     const results = await this.#service.spider.results(scanId)
                         .then((result) => {
                             return result.results;
                         });
+
                     const emitResults = results.filter(result => !preResults.includes(result));
                     if (_validator.isValidArray(emitResults) || scanProgress > preScanProgress) {
                         clientResponse.write(`data: ${JSON.stringify({
@@ -64,10 +65,14 @@ class ZAPService {
                         preResults = results;
                         preScanProgress = scanProgress;
                     }
-                }
-                this.#service.spider.removeScan(scanId);
+                    if (scanProgress === 100) {
+                        clearInterval(emitInterval);
+                        this.#service.spider.removeScan(scanId);
+                    }
+                }, timeInterval);
             } catch (error) {
                 console.log(error);
+                this.#service.spider.removeScan(scanId);
             }
         }
     }
