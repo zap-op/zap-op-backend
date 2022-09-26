@@ -1,6 +1,7 @@
 import express from 'express';
 import scanSessionModelFactor from '../../../database/models/scan.session.model.js';
 import ZAPService from '../../../service/zap.js';
+import ZAPError from '../../../utils/errors/zap.error.js';
 import SCAN_STATUS from '../../../utils/scan.status.js';
 import SCAN_TYPE from '../../../utils/scan.type.js';
 import _validator from '../../../utils/validator.js';
@@ -21,7 +22,7 @@ spiderScanRouter.get('/', async (req, res) => {
 
     try {
         if (_validator.isUndenfined(scanSessionCookie)) {
-            throw TypeError("scanSessionCookie is not defined")
+            throw ReferenceError("scanSessionCookie is not defined")
         }
 
         const scanSession = await scanSessionModelFactor.scanSessionModel.findOne({
@@ -29,13 +30,13 @@ spiderScanRouter.get('/', async (req, res) => {
         });
 
         if (_validator.isUndenfined(scanSession)) {
-            throw TypeError("scanSession is not defined");
+            throw ReferenceError("scanSession is not defined");
         }
 
         const zap = new ZAPService();
         const scanId = await zap.scan(scanSession.url, scanSession.scanType, scanSession.scanConfig);
         if (isNaN(scanId)) {
-            throw TypeError("scanId type not suitable");
+            throw new ZAPError("scanId type not suitable");
         }
 
         req.on('close', () => {
@@ -45,7 +46,11 @@ spiderScanRouter.get('/', async (req, res) => {
         zap.emit(res, scanSession.scanType, scanId);
     } catch (error) {
         console.log(error);
-        res.write(JSON.stringify(SCAN_STATUS.INVALID_SESSION));
+        if (error instanceof ReferenceError) {
+            res.write(`event: error\ndata: ${JSON.stringify(SCAN_STATUS.INVALID_SESSION)}\n\n`);
+        } else if (error instanceof ZAPError) {
+            res.write(`event: error\ndata: ${JSON.stringify(SCAN_STATUS.ZAP_SERVICE_ERROR)}\n\n`);
+        }
     }
 });
 

@@ -1,3 +1,4 @@
+import SCAN_STATUS from '../utils/scan.status.js';
 import SCAN_TYPE from '../utils/scan.type.js';
 import _validator from '../utils/validator.js';
 import ZAProxyClient from './zap.client.js';
@@ -72,6 +73,8 @@ class ZAPService {
                 }, timeInterval);
             } catch (error) {
                 console.log(error);
+                clientResponse.write(`event: error\ndata: ${JSON.stringify(SCAN_STATUS.ZAP_SERVICE_ERROR)}\n\n`);
+                clearInterval(emitInterval);
                 this.#service.spider.removeScan(scanId);
             }
         }
