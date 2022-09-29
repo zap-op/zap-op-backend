@@ -48,39 +48,53 @@ class ZAPService {
                 let preScanProgress = 0;
                 const timeInterval = 1000;
                 const emitInterval = setInterval(async () => {
-                    scanProgress = await this.#service.spider.status(scanId)
-                        .then((result) => {
-                            return parseInt(result.status);
-                        });
-                    const results = await this.#service.spider.results(scanId)
-                        .then((result) => {
-                            return result.results;
-                        });
+                    try {
+                        scanProgress = await this.#service.spider.status(scanId)
+                            .then((result) => {
+                                return parseInt(result.status);
+                            });
+                        const results = await this.#service.spider.results(scanId)
+                            .then((result) => {
+                                return result.results;
+                            });
 
-                    const emitResults = results.filter(result => !preResults.includes(result));
-                    if (_validator.isValidArray(emitResults) || scanProgress > preScanProgress) {
-                        clientResponse.write(`data: ${JSON.stringify({
-                            scanProgress: scanProgress,
-                            results: emitResults
-                        })}\n\n`);
-                        preResults = results;
-                        preScanProgress = scanProgress;
-                    }
-                    if (scanProgress === 100) {
+                        const emitResults = results.filter(result => !preResults.includes(result));
+                        if (_validator.isValidArray(emitResults) || scanProgress > preScanProgress) {
+                            clientResponse.write(`data: ${JSON.stringify({
+                                scanProgress: scanProgress,
+                                results: emitResults
+                            })}\n\n`);
+                            preResults = results;
+                            preScanProgress = scanProgress;
+                        }
+                        if (scanProgress === 100) {
+                            clearInterval(emitInterval);
+                            this.#service.spider.removeScan(scanId);
+                        }
+                    } catch (error) {
+                        clientResponse.write(`event: error\ndata: ${JSON.stringify(SCAN_STATUS.ZAP_SERVICE_ERROR)}\n\n`);
                         clearInterval(emitInterval);
-                        this.#service.spider.removeScan(scanId);
+                        if (error.name === "StatusCodeError") {
+                            console.log(error.statusCode, error.error);
+                        } else {
+                            console.log(error);
+                            this.#service.spider.removeScan(scanId);
+                        }
                     }
                 }, timeInterval);
             } catch (error) {
-                console.log(error);
                 clientResponse.write(`event: error\ndata: ${JSON.stringify(SCAN_STATUS.ZAP_SERVICE_ERROR)}\n\n`);
                 clearInterval(emitInterval);
-                this.#service.spider.removeScan(scanId);
+                if (error.name === "StatusCodeError") {
+                    console.log(error.statusCode, error.error);
+                } else {
+                    console.log(error);
+                    this.#service.spider.removeScan(scanId);
+                }
             }
         }
     }
 }
-
 
 export default ZAPService;
 // let statusSubject = new Subject('0');
