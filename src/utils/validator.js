@@ -62,11 +62,8 @@ function isDocExists_MONGODB(model, fieldKey, fieldValue) {
  * @returns {boolean}
  */
 
-function isUndenfined(object) {
-    if (typeof object === "undenfined") {
-        return true;
-    }
-    return false;
+function isNullorUndenfined(object) {
+    return !object;
 }
 
 const _validator = {
@@ -75,7 +72,7 @@ const _validator = {
     isValidString,
     isValidArray,
     isDocExists_MONGODB,
-    isUndenfined
+    isNullorUndenfined,
 };
 
 export default _validator;

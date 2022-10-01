@@ -8,8 +8,8 @@ function generate() {
     return crypto.createHash("sha1").update(Date.now().toString()).digest("base64");
 }
 
-const cookieCrypto = {
+const _crypto = {
     generate
 };
 
-export default cookieCrypto;
+export default _crypto;

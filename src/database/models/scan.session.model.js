@@ -10,11 +10,6 @@ const scanSessionSchema = new database.Schema(
             type: String,
             required: true
         },
-        session: {
-            type: String,
-            required: true,
-            index: true
-        },
         authId: {
             type: database.Schema.Types.ObjectId
             // ref:

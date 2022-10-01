@@ -7,11 +7,6 @@ const SPIDER_SCAN_SESSION_SCAN_TYPE = SCAN_TYPE.ZAP.SPIDER;
 
 const spiderScanSessionSchema = new database.Schema(
     {
-        scanType: {
-            type: String,
-            default: SCAN_TYPE.ZAP.SPIDER,
-            immutable: true
-        },
         scanConfig: {
             maxChildren: {
                 type: Number,

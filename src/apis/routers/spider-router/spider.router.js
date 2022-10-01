@@ -5,13 +5,12 @@ import ZAPError from '../../../utils/errors/zap.error.js';
 import SCAN_STATUS from '../../../utils/scan.status.js';
 import SCAN_TYPE from '../../../utils/scan.type.js';
 import _validator from '../../../utils/validator.js';
-import scanRouterFactor from '../scan-router/scan.router.js';
 
 const spiderScanRouter = express.Router();
 const spiderScanrouterPath = SCAN_TYPE.ZAP.SPIDER;
 
 spiderScanRouter.get('/', async (req, res) => {
-    const scanSessionCookie = req.cookies[scanRouterFactor.scanSessionCookieName];
+    const scanSession = req.query.scanSession;
     const headers = {
         'Content-Type': 'text/event-stream',
         'Connection': 'keep-alive',
@@ -21,29 +20,25 @@ spiderScanRouter.get('/', async (req, res) => {
     res.writeHead(200, headers);
 
     try {
-        if (_validator.isUndenfined(scanSessionCookie)) {
-            throw ReferenceError("scanSessionCookie is not defined")
+        if (_validator.isNullorUndenfined(scanSession)) {
+            throw ReferenceError("scanSession is not defined")
         }
-
-        const scanSession = await scanSessionModelFactor.scanSessionModel.findOne({
-            session: scanSessionCookie
-        });
-
-        if (_validator.isUndenfined(scanSession)) {
-            throw ReferenceError("scanSession is not defined");
+        const scanSessionDoc = await scanSessionModelFactor.scanSessionModel.findById(scanSession);
+        if (_validator.isNullorUndenfined(scanSessionDoc)) {
+            throw ReferenceError("scanSessionDoc is not defined");
         }
 
         const zap = new ZAPService();
-        const scanId = await zap.scan(scanSession.url, scanSession.scanType, scanSession.scanConfig);
+        const scanId = await zap.scan(scanSessionDoc.url, scanSessionDoc.__t, scanSessionDoc.scanConfig);
         if (isNaN(scanId)) {
             throw new ZAPError("scanId type not suitable");
         }
 
         req.on('close', () => {
-            console.log(`client session ${scanSession.session} disconnect`);
+            console.log(`client session ${scanSessionDoc._id} disconnect`);
         });
 
-        zap.emit(res, scanSession.scanType, scanId);
+        zap.emit(res, scanSessionDoc.__t, scanId);
     } catch (error) {
         console.log(error);
         if (error instanceof ReferenceError) {
