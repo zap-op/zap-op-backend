@@ -1,24 +1,20 @@
 import 'dotenv/config';
-import database from './database/database.js';
 
+import database from './database/database.js';
 if (!database)
     throw 'Failed to connect DB';
-else
-    console.log('Connected to DB');
+
+console.log('Connected to DB');
 
 import express from 'express';
-
 const app = express();
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
-// CONFIG CORS POLICY
 import cors from 'cors';
-app.use(cors({
-	origin: process.env.CORS_ORIGIN
-}));
+if (process.env.CORS_ORIGIN)
+	app.use(cors({ origin: process.env.CORS_ORIGIN }));
 
-// CONFIG Cookie Parser to work with cookie
 import cookieParser from 'cookie-parser';
 app.use(cookieParser());
 
@@ -30,7 +26,6 @@ app.use((req, res) => {
 })
 
 import { ValidationError } from 'express-json-validator-middleware';
-
 app.use((err, req, res, next) => {
 	if (res.headersSent)
 		return next(err);
@@ -39,7 +34,7 @@ app.use((err, req, res, next) => {
 		return next(err);
 
 	res.status(400).json({
-		errors: err.validationErrors
+		msg: err.validationErrors
 	});
 
 	next();

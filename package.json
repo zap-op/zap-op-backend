@@ -5,21 +5,21 @@
   "type": "module",
   "main": "src/server.js",
   "scripts": {
-    "start": "nodemon src/server.js"
+    "dev": "nodemon src/server.js"
   },
   "author": "Huy Pham",
   "license": "ISC",
   "dependencies": {
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
-    "dotenv": "^16.0.1",
+    "dotenv": "^16.0.3",
     "express": "^4.18.1",
     "express-json-validator-middleware": "^3.0.1",
-    "mongoose": "^6.5.2",
+    "mongoose": "^6.6.3",
     "mongoose-schema-jsonschema": "^2.0.2",
-    "nodemon": "^2.0.19",
-    "rxjs": "^7.5.6",
-    "uuid": "^8.3.2",
+    "nodemon": "^2.0.20",
+    "rxjs": "^7.5.7",
+    "uuid": "^9.0.0",
     "validator": "^13.7.0",
     "zaproxy": "^1.0.1"
   }
