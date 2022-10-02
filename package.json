@@ -5,7 +5,9 @@
   "type": "module",
   "main": "src/server.js",
   "scripts": {
-    "dev": "nodemon src/server.js"
+    "build": "rm -rf src/dist/ ; npx tsc -p src/",
+    "start": "npm run build && node src/dist/server.js",
+    "dev": "npm run build && concurrently \"npx tsc --watch\" \"nodemon -q src/dist/server.js\""
   },
   "author": "Huy Pham",
   "license": "ISC",
@@ -15,6 +17,7 @@
     "dotenv": "^16.0.3",
     "express": "^4.18.1",
     "express-json-validator-middleware": "^3.0.1",
+    "json-schema": "^0.4.0",
     "mongoose": "^6.6.3",
     "mongoose-schema-jsonschema": "^2.0.2",
     "nodemon": "^2.0.20",
@@ -22,5 +25,24 @@
     "uuid": "^9.0.0",
     "validator": "^13.7.0",
     "zaproxy": "^1.0.1"
+  },
+  "devDependencies": {
+    "@types/cookie-parser": "^1.4.3",
+    "@types/cors": "^2.8.12",
+    "@types/express": "^4.17.14",
+    "@types/node": "^18.7.23",
+    "@types/validator": "^13.7.7",
+    "@typescript-eslint/eslint-plugin": "^5.38.1",
+    "@typescript-eslint/parser": "^5.38.1",
+    "concurrently": "^7.4.0",
+    "eslint": "^8.24.0",
+    "eslint-config-prettier": "^8.5.0",
+    "eslint-config-standard-with-typescript": "^23.0.0",
+    "eslint-plugin-import": "^2.26.0",
+    "eslint-plugin-n": "^15.3.0",
+    "eslint-plugin-prettier": "^4.2.1",
+    "eslint-plugin-promise": "^6.0.1",
+    "prettier": "2.7.1",
+    "typescript": "^4.8.4"
   }
 }
