@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+// @ts-ignore
 import addJsonSchema from "mongoose-schema-jsonschema";
 
 let database: mongoose.Mongoose | undefined;

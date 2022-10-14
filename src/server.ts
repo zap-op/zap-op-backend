@@ -1,7 +1,7 @@
 import "dotenv/config";
 
 import database from "./database/database.js";
-if (!database) throw "Failed to connect DB";
+if (!database) throw Error("Failed to connect DB");
 
 console.log("Connected to DB");
 
@@ -39,5 +39,5 @@ app.use((err: any, _req: any, res: any, next: any) => {
 const port = process.env.PORT || 8888;
 const server = app.listen(port, () => {
   const addr = server.address();
-  console.log(`Started REST server on ${addr}`);
+  console.log("Started REST server", addr);
 });

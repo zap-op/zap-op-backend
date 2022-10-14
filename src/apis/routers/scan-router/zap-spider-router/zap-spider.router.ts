@@ -1,11 +1,11 @@
 import express from "express";
 import { Validator } from "express-json-validator-middleware";
 import { JSONSchema7 } from "json-schema";
-import SCAN_STATUS from "../scan.status";
-import { isValidURL } from "../../../../utils/validator";
-import { zapSpiderScanSessionModel } from "../../../../database/models/zap-spider.scan-session.model";
-import { ZAPError } from "../../../../utils/errors/zap.error";
-import ZAPService from "../../../../scan-services/zap-service/zap.service";
+import SCAN_STATUS from "../scan.status.js";
+import { isValidURL } from "../../../../utils/validator.js";
+import { zapSpiderScanSessionModel } from "../../../../database/models/zap-spider.scan-session.model.js";
+import { ZAPError } from "../../../../utils/errors/zap.error.js";
+import ZAPService from "../../../../scan-services/zap-service/zap.service.js";
 
 const zapSpiderRouter = express.Router();
 const validator = new Validator({});
@@ -85,6 +85,7 @@ zapSpiderRouter.get("/", async (req, res) => {
 
   const headers = {
     "Content-Type": "text/event-stream",
+    "Transfer-Encoding": "chunked",
     Connection: "keep-alive",
     "Cache-Control": "no-cache",
   };
@@ -98,6 +99,11 @@ zapSpiderRouter.get("/", async (req, res) => {
       throw ReferenceError("scanSessionDoc is not defined");
     }
 
+    req.on("close", () => {
+      console.log(`client session ${scanSessionDoc._id} disconnect`);
+      throw Error("Client disconnected");
+    });
+
     const zap = ZAPService.instance();
     const scanId = await zap.scan(
       scanSessionDoc.url,
@@ -108,17 +114,20 @@ zapSpiderRouter.get("/", async (req, res) => {
       throw new ZAPError("scanId type not suitable");
     }
 
-    req.on("close", () => {
-      console.log(`client session ${scanSessionDoc._id} disconnect`);
-    });
-
-    zap.emit(res, scanSessionDoc.__t, scanId);
+    zap.emitProgress(res, scanSessionDoc.__t, scanId);
   } catch (error) {
     console.log(error);
 
-    let errData = SCAN_STATUS.INTERNAL_ERROR;
-    if (error instanceof ReferenceError) errData = SCAN_STATUS.INVALID_SESSION;
-    else if (error instanceof ZAPError) errData = SCAN_STATUS.ZAP_SERVICE_ERROR;
+    let errData: object = SCAN_STATUS.INTERNAL_ERROR;
+
+    if (error instanceof Error) {
+      if (error instanceof ReferenceError)
+        errData = SCAN_STATUS.INVALID_SESSION;
+      else if (error instanceof ZAPError)
+        errData = SCAN_STATUS.ZAP_SERVICE_ERROR;
+
+      errData = { ...errData, exception: error.message };
+    }
 
     res.write(`event: error\ndata: ${JSON.stringify(errData)}\n\n`);
   }

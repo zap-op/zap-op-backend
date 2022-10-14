@@ -1,55 +1,56 @@
 import { Response } from "express";
 import SCAN_STATUS from "../../apis/routers/scan-router/scan.status.js";
-import SCAN_TYPE from "../../database/models/scan-session.type.js";
-import _validator from "../../utils/validator.js";
-import ZAProxyClient from "./zapclient.js";
+// @ts-ignore
+import ZapClient from "zaproxy";
+import { SCAN_TYPE } from "../../database/models/scan-session.type.js";
 
 class ZAPService {
   private static _instance: ZAPService;
 
-  private constructor() {}
+  private service: any;
+
+  private constructor() {
+    const opts = {
+      apiKey: process.env.ZAP_API_KEY,
+      proxy:
+        (process.env.ZAP_HOST || "localhost") +
+        ":" +
+        (process.env.ZAP_HOST_PORT || 8080),
+    };
+
+    this.service = new ZapClient(opts);
+  }
 
   public static instance(): ZAPService {
     if (!ZAPService._instance) ZAPService._instance = new ZAPService();
     return ZAPService._instance;
   }
 
-  private service = ZAProxyClient;
-
   /**
    * Start scan
-   * @param {string} url URL to scan
-   * @param {string} type Type scan code
-   * @param {Object} config Scan's configuration object
-   * @returns {Promise|Number} Scan ID at OWASP ZAP application
    */
   async scan(url: string, type: string, config: any) {
     if (type == SCAN_TYPE.ZAP.SPIDER) {
-      return this.service.spider
-        .scan(
+      try {
+        const result = await this.service.spider.scan(
           url,
           config.maxChildren,
           config.recurse,
           config.contextName,
           config.subtreeOnly
-        )
-        .then((result: any) => {
-          return result.scan;
-        })
-        .catch((err: any) => {
-          console.log(err);
-        });
+        );
+        return result.scan;
+      } catch (err) {
+        console.log(err);
+      }
     }
     return undefined;
   }
 
   /**
    * Start emit data from scan
-   * @param {Response} clientResponse
-   * @param {string} type Scan type
-   * @param {Number} scanId
    */
-  async emit(clientResponse: Response, type: string, scanId: number) {
+  async emitProgress(clientResponse: Response, type: string, scanId: number) {
     if (type == SCAN_TYPE.ZAP.SPIDER) {
       try {
         let scanProgress = await this.service.spider
