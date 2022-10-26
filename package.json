@@ -5,7 +5,9 @@
   "type": "module",
   "main": "src/server.js",
   "scripts": {
-    "build": "rm -rf src/dist/ ; npx tsc -p src/",
+    "rmdir": "node -e \"var fs = require('fs');process.argv.slice(1).map((fpath)=>{ try {fs.rmdirSync(fpath,{recursive: true})} catch(e){console.warn('Error folder:', fpath, e)}});process.exit(0);\"",
+    "pre-build":"rmdir src/dist",
+    "build": "npm run pre-build ; npx tsc -p src/",
     "start": "npm run build && node src/dist/server.js",
     "dev": "npm run build && concurrently \"npx tsc --watch\" \"nodemon -q src/dist/server.js\""
   },
