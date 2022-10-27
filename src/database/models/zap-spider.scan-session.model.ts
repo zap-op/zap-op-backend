@@ -1,6 +1,6 @@
-import database from "../database.js";
-import { scanSessionModel } from "./scan-session.model.js";
-import { SCAN_TYPE } from "./scan-session.type.js";
+import database from "../database";
+import { scanSessionModel } from "./scan-session.model";
+import { SCAN_TYPE } from "./scan-session.type";
 
 export const zapSpiderScanSessionModel = scanSessionModel.discriminator(
   SCAN_TYPE.ZAP.SPIDER,

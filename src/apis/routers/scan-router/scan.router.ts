@@ -1,5 +1,5 @@
 import express from "express";
-import zapSpiderRouter from "./zap-spider-router/zap-spider.router.js";
+import zapSpiderRouter from "./zap-spider-router/zap-spider.router";
 
 const scanRouter = express.Router();
 
