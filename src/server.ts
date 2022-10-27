@@ -1,6 +1,6 @@
 import "dotenv/config";
 
-import database from "./database/database.js";
+import database from "./database/database";
 if (!database) throw Error("Failed to connect DB");
 
 console.log("Connected to DB");
@@ -16,7 +16,7 @@ if (process.env.CORS_ORIGIN) app.use(cors({ origin: process.env.CORS_ORIGIN }));
 import cookieParser from "cookie-parser";
 app.use(cookieParser());
 
-import { initRoutes } from "./apis/route.js";
+import { initRoutes } from "./apis/route";
 initRoutes(app);
 
 app.use((req, res) => {

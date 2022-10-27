@@ -1,8 +1,8 @@
 import { Response } from "express";
-import SCAN_STATUS from "../../apis/routers/scan-router/scan.status.js";
+import SCAN_STATUS from "../../apis/routers/scan-router/scan.status";
 // @ts-ignore
 import ZapClient from "zaproxy";
-import { SCAN_TYPE } from "../../database/models/scan-session.type.js";
+import { SCAN_TYPE } from "../../database/models/scan-session.type";
 
 class ZAPService {
   private static _instance: ZAPService;

@@ -1,5 +1,5 @@
 import { Schema, Types } from "mongoose";
-import database from "../database.js";
+import database from "../database";
 
 export const SCAN_SESSION_COLLECTION =
   "scan_sessions" + (process.env.NODE_ENV === "development" ? "_tests" : "");

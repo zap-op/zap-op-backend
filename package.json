@@ -1,15 +1,15 @@
 {
   "name": "zap-op-backend",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "",
   "type": "module",
   "main": "src/server.js",
   "scripts": {
-    "rmdir": "node -e \"var fs = require('fs');process.argv.slice(1).map((fpath)=>{ try {fs.rmdirSync(fpath,{recursive: true})} catch(e){console.warn('Error folder:', fpath, e)}});process.exit(0);\"",
+    "rmdir": "node -e \"var fs = require('fs'); process.argv.slice(1).map((fpath)=>{ try { fs.rmdirSync(fpath, { recursive: true, force: true }); } catch(e) { console.log('Error folder:', fpath, e); } });\"",
     "pre-build":"rmdir src/dist",
     "build": "npm run pre-build ; npx tsc -p src/",
-    "start": "npm run build && node src/dist/server.js",
-    "dev": "npm run build && concurrently \"npx tsc --watch\" \"nodemon -q src/dist/server.js\""
+    "start": "npm run build && node --es-module-specifier-resolution=node src/dist/server.js",
+    "dev": "npm run build && concurrently \"npx tsc --watch\" \"nodemon -q --es-module-specifier-resolution=node src/dist/server.js\""
   },
   "author": "Huy Pham",
   "license": "ISC",
