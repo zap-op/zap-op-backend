@@ -85,8 +85,7 @@ zapSpiderRouter.get("/", async (req, res) => {
 
   const headers = {
     "Content-Type": "text/event-stream",
-    "Transfer-Encoding": "chunked",
-    Connection: "keep-alive",
+    "Connection": "keep-alive",
     "Cache-Control": "no-cache",
   };
   res.writeHead(200, headers);
