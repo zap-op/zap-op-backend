@@ -1,7 +1,7 @@
 import express from "express";
 import { Validator } from "express-json-validator-middleware";
 import { JSONSchema7 } from "json-schema";
-import { targetModel } from "../../../database/models/target.model";
+import {targetModel, targetTrashModel} from "../../../database/models/target.model";
 import { isValidURL } from "../../../utils/validator";
 
 const mgmtRouter = express.Router();
@@ -12,7 +12,11 @@ const MGMT_STATUS = {
         statusCode: 0,
         msg: "Target added successfully",
     },
-    INVAVLID_URL: {
+    TARGET_DELETEED: {
+        statusCode: 1,
+        msg: "Target deleted successfully",
+    },
+    TARGET_INVAVLID_URL: {
         statusCode: -1,
         msg: "Invalid URL for target",
     },
@@ -20,6 +24,18 @@ const MGMT_STATUS = {
         statusCode: -2,
         msg: "Target failed to add",
     },
+    TARGET_INVALID_ID: {
+        statusCode: -3,
+        msg: "Invalid ID for target",
+    },
+    TARGET_FIND_FAILED: {
+        statusCode: -4,
+        msg: "Target failed to find",
+    },
+    TARGET_DELETE_FAILED: {
+        statusCode: -5,
+        msg: "Target failed to delete",
+    }
 };
 
 const postTargetSchema: JSONSchema7 = {
@@ -53,7 +69,7 @@ mgmtRouter.post(
             const body = req.body;
 
             if (!isValidURL(body.target))
-                return res.status(400).send(MGMT_STATUS.INVAVLID_URL);
+                return res.status(400).send(MGMT_STATUS.TARGET_INVAVLID_URL);
 
             try {
                 const newTarget = new targetModel({
@@ -69,6 +85,31 @@ mgmtRouter.post(
             } catch (error) {
                 console.error(error);
                 res.status(500).send({ msg: MGMT_STATUS.TARGET_ADD_FAILED });
+            }
+        });
+
+mgmtRouter.delete(
+        "/target",
+        async (req, res) => {
+            if (!req.query.id)
+                return res.status(400).send(MGMT_STATUS.TARGET_INVALID_ID);
+
+            try {
+                const target = await targetModel.findById(req.query.id);
+                if (!target)
+                    return res.status(400).send(MGMT_STATUS.TARGET_FIND_FAILED);
+
+                const trashedTarget = new targetTrashModel(target.toObject());
+
+                await trashedTarget.save();
+                await target.deleteOne();
+
+                return res.status(201).send({
+                    msg: MGMT_STATUS.TARGET_DELETEED,
+                });
+            } catch (error) {
+                console.error(error);
+                res.status(500).send({ msg: MGMT_STATUS.TARGET_DELETE_FAILED });
             }
         });
 
