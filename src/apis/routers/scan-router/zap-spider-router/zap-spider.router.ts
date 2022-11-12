@@ -1,11 +1,11 @@
 import express from "express";
 import { Validator } from "express-json-validator-middleware";
 import { JSONSchema7 } from "json-schema";
-import SCAN_STATUS from "../scan.status";
 import { isValidURL } from "../../../../utils/validator";
 import { zapSpiderScanSessionModel } from "../../../../database/models/zap-spider.scan-session.model";
 import { ZAPError } from "../../../../utils/errors/zap.error";
 import ZAPService from "../../../../scan-services/zap-service/zap.service";
+import { SCAN_STATUS } from "../scan.router";
 
 const zapSpiderRouter = express.Router();
 const validator = new Validator({});
