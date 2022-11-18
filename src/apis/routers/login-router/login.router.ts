@@ -6,6 +6,10 @@ import {userModel} from "../../../database/models/user.model";
 const loginRouter = express.Router();
 
 const LOGIN_STATUS = {
+    LOGIN_SUCCESS: {
+        statusCode: 0,
+        msg: "Login successfully"
+    },
     TOKEN_NOT_FOUND: {
         statusCode: -1,
         msg: "No token found",
@@ -54,9 +58,12 @@ loginRouter.post("/", async (req, res) => {
         return res.status(500).send({ msg: LOGIN_STATUS.USER_ADD_FAILED });
     }
 
-    const signedAccessToken = signJwt(userObj, "1h");
+    const accessToken = signJwt(userObj, "1h");
     const refreshToken = signJwt({}, "7d");
-    res.status(200).json({ new_token: signedAccessToken, refresh_token: refreshToken });
+    res.status(200)
+        .cookie('access_token', accessToken, { maxAge: 60 * 60 })
+        .cookie('refresh_token', refreshToken, { maxAge: 7 * 24 * 60 * 60 })
+        .send({ msg: LOGIN_STATUS.LOGIN_SUCCESS });
 });
 
 export default loginRouter;
