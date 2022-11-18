@@ -1,4 +1,4 @@
-import { Schema, Types } from "mongoose";
+import { Schema } from "mongoose";
 import database from "../database";
 
 export const SCAN_SESSION_COLLECTION =
