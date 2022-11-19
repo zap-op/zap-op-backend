@@ -10,17 +10,17 @@ export function parseAccessTokenMdw() {
     return expressjwt({
         secret: process.env.ZAP_OP_PRIVATE_KEY!,
         algorithms: ["HS256"],
-        getToken: req => req.cookies.a_token,
-        requestProperty: "a_token"
+        getToken: req => req.cookies.access_token,
+        requestProperty: "access_token"
     });
 }
 
 export function renewAccessTokenMdw(req: JWTRequest, res: Response, next: NextFunction) {
-    const accessToken = signJwt(req.a_token, "1d");
-    res.cookie('a_token', accessToken, { maxAge: 24 * 60 * 60 });
+    const accessToken = signJwt(req.access_token, "1d");
+    res.cookie('access_token', accessToken, { maxAge: 24 * 60 * 60 });
     next();
 }
 
 export type JWTRequest<T = JwtPayload> = Request & {
-    a_token: T,
+    access_token: T,
 };

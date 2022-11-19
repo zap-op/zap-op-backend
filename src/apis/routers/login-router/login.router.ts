@@ -25,12 +25,12 @@ const LOGIN_STATUS = {
 };
 
 loginRouter.post("/", async (req, res) => {
-    if (!req.cookies.g_token || (typeof req.cookies.g_token !== "string"))
+    if (!req.cookies.gg_token || (typeof req.cookies.gg_token !== "string"))
         return res.status(400).send({ msg: LOGIN_STATUS.TOKEN_NOT_FOUND });
 
     let googleData = undefined;
     try {
-        googleData = await isValidGoogleIDToken(req.cookies.g_token);
+        googleData = await isValidGoogleIDToken(req.cookies.gg_token);
     }
     catch(err) {
         console.error(err);
@@ -60,7 +60,7 @@ loginRouter.post("/", async (req, res) => {
 
     const accessToken = signJwt({ ...userObj, typ: "access" }, "1d");
     res.status(200)
-        .cookie('a_token', accessToken, { maxAge: 24 * 60 * 60 })
+        .cookie('access_token', accessToken, { maxAge: 24 * 60 * 60 })
         .send({ msg: LOGIN_STATUS.LOGIN_SUCCESS });
 });
 
