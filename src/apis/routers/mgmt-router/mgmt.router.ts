@@ -1,8 +1,8 @@
 import express from "express";
-import { Validator } from "express-json-validator-middleware";
-import { JSONSchema7 } from "json-schema";
+import {Validator} from "express-json-validator-middleware";
+import {JSONSchema7} from "json-schema";
 import {targetModel, targetTrashModel} from "../../../database/models/target.model";
-import { isValidURL } from "../../../utils/validator";
+import {isValidURL} from "../../../utils/validator";
 
 const mgmtRouter = express.Router();
 const validator = new Validator({});

@@ -1,9 +1,6 @@
 import validator from "validator";
+import {OAuth2Client} from "google-auth-library";
 
-/**
- * Check if valid URL
- * @param {string} urlString
- */
 export function isValidURL(urlString: string) {
   return validator.isURL(urlString, {
     protocols: ["http", "https"],
@@ -14,7 +11,7 @@ export function isValidURL(urlString: string) {
 
 if (!process.env.GOOGLE_CLIENT_ID)
     throw "GOOGLE_CLIENT_ID not found";
-import { OAuth2Client } from 'google-auth-library';
+
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 export async function isValidGoogleIDToken(token: string) {
     const ticket = await client.verifyIdToken({

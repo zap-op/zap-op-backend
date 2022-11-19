@@ -1,9 +1,9 @@
 import express from "express";
-import { Validator } from "express-json-validator-middleware";
-import { JSONSchema7 } from "json-schema";
-import { isValidURL } from "../../../../utils/validator";
-import { zapSpiderScanSessionModel } from "../../../../database/models/zap-spider.scan-session.model";
-import { ZAPError } from "../../../../utils/errors/zap.error";
+import {Validator} from "express-json-validator-middleware";
+import {JSONSchema7} from "json-schema";
+import {isValidURL} from "../../../../utils/validator";
+import {zapSpiderScanSessionModel} from "../../../../database/models/zap-spider.scan-session.model";
+import {ZAPError} from "../../../../utils/errors/zap.error";
 import ZAPService from "../../../../scan-services/zap-service/zap.service";
 import { SCAN_STATUS } from "../scan.router";
 import { isValidObjectId } from "mongoose";
