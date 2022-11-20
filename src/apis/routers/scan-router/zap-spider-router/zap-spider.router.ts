@@ -6,6 +6,7 @@ import { zapSpiderScanSessionModel } from "../../../../database/models/zap-spide
 import { ZAPError } from "../../../../utils/errors/zap.error";
 import ZAPService from "../../../../scan-services/zap-service/zap.service";
 import { SCAN_STATUS } from "../scan.router";
+import { isValidObjectId } from "mongoose";
 
 const zapSpiderRouter = express.Router();
 const validator = new Validator({});
@@ -66,23 +67,21 @@ zapSpiderRouter.post(
         },
       });
       await scanSession.save();
-
       return res.status(201).send({
         scanSession: scanSession._id,
-        msg: SCAN_STATUS.SESSION_INITIALIZE_SUCCEED,
+        scanStatus: SCAN_STATUS.SESSION_INITIALIZE_SUCCEED,
       });
     } catch (error) {
       console.error(error);
-      res.status(500).send({ msg: SCAN_STATUS.SESSION_INITIALIZE_FAIL });
+      res.status(500).send(SCAN_STATUS.SESSION_INITIALIZE_FAIL);
     }
   }
 );
 
 zapSpiderRouter.get("/", async (req, res) => {
   const scanSession = req.query.scanSession;
-  if (!scanSession)
-    return res.status(500).send({ msg: SCAN_STATUS.INVALID_SESSION });
-
+  if (!scanSession || !isValidObjectId(scanSession))
+    return res.status(500).send(SCAN_STATUS.INVALID_SESSION);
   const headers = {
     "Content-Type": "text/event-stream",
     "Connection": "keep-alive",
@@ -91,20 +90,18 @@ zapSpiderRouter.get("/", async (req, res) => {
   res.writeHead(200, headers);
 
   try {
-    const scanSessionDoc: any = await zapSpiderScanSessionModel.findById(
-      scanSession
-    );
+    const scanSessionDoc: any = await zapSpiderScanSessionModel
+      .findById(scanSession);
     if (!scanSessionDoc) {
       throw ReferenceError("scanSessionDoc is not defined");
     }
 
     req.on("close", () => {
       console.log(`client session ${scanSessionDoc._id} disconnect`);
-      throw Error("Client disconnected");
     });
 
     const zap = ZAPService.instance();
-    const scanId = await zap.scan(
+    const scanId: number = await zap.scan(
       scanSessionDoc.url,
       scanSessionDoc.__t,
       scanSessionDoc.scanConfig
