@@ -53,15 +53,15 @@ class ZAPService {
   async emitProgress(clientResponse: Response, type: string, scanId: number) {
     if (type == SCAN_TYPE.ZAP.SPIDER) {
       try {
-        let scanProgress = await this.service.spider
+        let scanProgress: number = await this.service.spider
           .status(scanId)
           .then((result: any) => {
             return parseInt(result.status);
           });
-        let preResults: number[] = [];
-        let preScanProgress = 0;
-        const timeInterval = 1000;
-        const emitInterval = setInterval(async () => {
+        let preResults: string[] = [];
+        let preScanProgress: number = 0;
+        const timeInterval: number = 1000;
+        const emitInterval: NodeJS.Timer = setInterval(async () => {
           try {
             scanProgress = await this.service.spider
               .status(scanId)

@@ -102,7 +102,7 @@ zapSpiderRouter.get("/", async (req, res) => {
     });
 
     const zap = ZAPService.instance();
-    const scanId = await zap.scan(
+    const scanId: number = await zap.scan(
       scanSessionDoc.url,
       scanSessionDoc.__t,
       scanSessionDoc.scanConfig
