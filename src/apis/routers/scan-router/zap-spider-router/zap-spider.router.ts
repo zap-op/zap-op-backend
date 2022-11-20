@@ -69,11 +69,11 @@ zapSpiderRouter.post(
 
       return res.status(201).send({
         scanSession: scanSession._id,
-        msg: SCAN_STATUS.SESSION_INITIALIZE_SUCCEED,
+        scanStatus: SCAN_STATUS.SESSION_INITIALIZE_SUCCEED,
       });
     } catch (error) {
       console.error(error);
-      res.status(500).send({ msg: SCAN_STATUS.SESSION_INITIALIZE_FAIL });
+      res.status(500).send(SCAN_STATUS.SESSION_INITIALIZE_FAIL);
     }
   }
 );
@@ -81,8 +81,7 @@ zapSpiderRouter.post(
 zapSpiderRouter.get("/", async (req, res) => {
   const scanSession = req.query.scanSession;
   if (!scanSession)
-    return res.status(500).send({ msg: SCAN_STATUS.INVALID_SESSION });
-
+    return res.status(500).send(SCAN_STATUS.INVALID_SESSION);
   const headers = {
     "Content-Type": "text/event-stream",
     "Connection": "keep-alive",
@@ -100,7 +99,6 @@ zapSpiderRouter.get("/", async (req, res) => {
 
     req.on("close", () => {
       console.log(`client session ${scanSessionDoc._id} disconnect`);
-      throw Error("Client disconnected");
     });
 
     const zap = ZAPService.instance();
