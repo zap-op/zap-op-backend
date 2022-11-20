@@ -67,7 +67,6 @@ zapSpiderRouter.post(
         },
       });
       await scanSession.save();
-
       return res.status(201).send({
         scanSession: scanSession._id,
         scanStatus: SCAN_STATUS.SESSION_INITIALIZE_SUCCEED,
@@ -91,9 +90,8 @@ zapSpiderRouter.get("/", async (req, res) => {
   res.writeHead(200, headers);
 
   try {
-    const scanSessionDoc: any = await zapSpiderScanSessionModel.findById(
-      scanSession
-    );
+    const scanSessionDoc: any = await zapSpiderScanSessionModel
+      .findById(scanSession);
     if (!scanSessionDoc) {
       throw ReferenceError("scanSessionDoc is not defined");
     }

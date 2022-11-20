@@ -112,7 +112,6 @@ class ZAPService {
             SCAN_STATUS.ZAP_SERVICE_ERROR
           )}\n\n`
         );
-        // clearInterval(emitInterval);
         if (error.name === "StatusCodeError") {
           console.log(error.statusCode, error.error);
         } else {
