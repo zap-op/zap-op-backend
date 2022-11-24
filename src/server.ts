@@ -16,14 +16,14 @@ if (process.env.CORS_ORIGIN) app.use(cors({ origin: process.env.CORS_ORIGIN }));
 import cookieParser from "cookie-parser";
 app.use(cookieParser());
 
-import { initRoutes } from "./apis/route";
+import {initRoutes} from "./apis/route";
 initRoutes(app);
 
 app.use((req, res) => {
   res.status(404).json({ msg: req.originalUrl + " not found" });
 });
 
-import { ValidationError } from "express-json-validator-middleware";
+import {ValidationError} from "express-json-validator-middleware";
 app.use((err: any, _req: any, res: any, next: any) => {
   if (res.headersSent) return next(err);
 
