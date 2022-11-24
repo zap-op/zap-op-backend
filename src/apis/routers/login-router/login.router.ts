@@ -5,7 +5,7 @@ import {userModel} from "../../../database/models/user.model";
 
 const loginRouter = express.Router();
 
-const LOGIN_STATUS = {
+export const LOGIN_STATUS = {
     LOGIN_SUCCESS: {
         statusCode: 0,
         msg: "Login successfully"
@@ -24,13 +24,19 @@ const LOGIN_STATUS = {
     }
 };
 
+export const GOOGLE_TOKEN_NAME = "gg_token";
+export const ACCESS_TOKEN_NAME = "access_token";
+export const ACCESS_TOKEN_MAX_AGE = 60 * 60;
+export const REFRESH_TOKEN_NAME = "refresh_token";
+export const REFRESH_TOKEN_MAX_AGE = 7 * 24 * 60 * 60;
+
 loginRouter.post("/", async (req, res) => {
-    if (!req.cookies.gg_token || (typeof req.cookies.gg_token !== "string"))
+    if (!req.cookies[GOOGLE_TOKEN_NAME] || (typeof req.cookies[GOOGLE_TOKEN_NAME] !== "string"))
         return res.status(400).send({ msg: LOGIN_STATUS.TOKEN_NOT_FOUND });
 
     let googleData = undefined;
     try {
-        googleData = await isValidGoogleIDToken(req.cookies.gg_token);
+        googleData = await isValidGoogleIDToken(req.cookies[GOOGLE_TOKEN_NAME]);
     }
     catch(err) {
         console.error(err);
@@ -58,9 +64,11 @@ loginRouter.post("/", async (req, res) => {
         return res.status(500).send({ msg: LOGIN_STATUS.USER_ADD_FAILED });
     }
 
-    const accessToken = signJwt({ ...userObj, typ: "access" }, "1d");
+    const accessToken = signJwt({ ...userObj, typ: ACCESS_TOKEN_NAME }, ACCESS_TOKEN_MAX_AGE);
+    const refreshToken = signJwt({ ...userObj, typ: REFRESH_TOKEN_NAME }, REFRESH_TOKEN_MAX_AGE);
     res.status(200)
-        .cookie('access_token', accessToken, { maxAge: 24 * 60 * 60 })
+        .cookie(ACCESS_TOKEN_NAME, accessToken, { maxAge: ACCESS_TOKEN_MAX_AGE })
+        .cookie(REFRESH_TOKEN_NAME, refreshToken, { maxAge: REFRESH_TOKEN_MAX_AGE })
         .send({ msg: LOGIN_STATUS.LOGIN_SUCCESS });
 });
 
