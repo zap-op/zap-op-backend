@@ -32,15 +32,14 @@ export const REFRESH_TOKEN_MAX_AGE = 7 * 24 * 60 * 60;
 
 loginRouter.post("/", async (req, res) => {
     if (!req.cookies[GOOGLE_TOKEN_NAME] || (typeof req.cookies[GOOGLE_TOKEN_NAME] !== "string"))
-        return res.status(400).send({ msg: LOGIN_STATUS.TOKEN_NOT_FOUND });
+        return res.status(400).send({msg: LOGIN_STATUS.TOKEN_NOT_FOUND});
 
     let googleData = undefined;
     try {
         googleData = await isValidGoogleIDToken(req.cookies[GOOGLE_TOKEN_NAME]);
-    }
-    catch(err) {
+    } catch (err) {
         console.error(err);
-        return res.status(400).send({ msg: LOGIN_STATUS.TOKEN_INVALID });
+        return res.status(400).send({msg: LOGIN_STATUS.TOKEN_INVALID});
     }
 
     const userObj = {
@@ -54,22 +53,22 @@ loginRouter.post("/", async (req, res) => {
     };
 
     try {
-        const user = await userModel.findOne({ "email": userObj.email });
+        const user = await userModel.findOne({"email": userObj.email});
         if (!user) {
             const newUser = new userModel(userObj);
             await newUser.save();
         }
     } catch (error) {
         console.error(error);
-        return res.status(500).send({ msg: LOGIN_STATUS.USER_ADD_FAILED });
+        return res.status(500).send({msg: LOGIN_STATUS.USER_ADD_FAILED});
     }
 
-    const accessToken = signJwt({ ...userObj, typ: ACCESS_TOKEN_NAME }, ACCESS_TOKEN_MAX_AGE);
-    const refreshToken = signJwt({ ...userObj, typ: REFRESH_TOKEN_NAME }, REFRESH_TOKEN_MAX_AGE);
+    const accessToken = signJwt({...userObj, typ: ACCESS_TOKEN_NAME}, ACCESS_TOKEN_MAX_AGE);
+    const refreshToken = signJwt({...userObj, typ: REFRESH_TOKEN_NAME}, REFRESH_TOKEN_MAX_AGE);
     res.status(200)
-        .cookie(ACCESS_TOKEN_NAME, accessToken, { maxAge: ACCESS_TOKEN_MAX_AGE })
-        .cookie(REFRESH_TOKEN_NAME, refreshToken, { maxAge: REFRESH_TOKEN_MAX_AGE })
-        .send({ msg: LOGIN_STATUS.LOGIN_SUCCESS });
+        .cookie(ACCESS_TOKEN_NAME, accessToken, {maxAge: ACCESS_TOKEN_MAX_AGE})
+        .cookie(REFRESH_TOKEN_NAME, refreshToken, {maxAge: REFRESH_TOKEN_MAX_AGE})
+        .send({msg: LOGIN_STATUS.LOGIN_SUCCESS});
 });
 
 export default loginRouter;

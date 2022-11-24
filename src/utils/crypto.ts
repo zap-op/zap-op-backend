@@ -6,10 +6,10 @@ import jwt from "jsonwebtoken";
  * @return
  */
 export function genSHA1() {
-  return crypto
-    .createHash("sha1")
-    .update(Date.now().toString())
-    .digest("base64");
+    return crypto
+        .createHash("sha1")
+        .update(Date.now().toString())
+        .digest("base64");
 }
 
 export function signJwt(payload: object, expiresIn: string | number) {

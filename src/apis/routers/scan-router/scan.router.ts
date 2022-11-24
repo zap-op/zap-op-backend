@@ -34,4 +34,4 @@ const scanRouter = express.Router();
 
 scanRouter.use("/zap-spider", zapSpiderRouter);
 
-export { scanRouter, SCAN_STATUS };
+export {scanRouter, SCAN_STATUS};

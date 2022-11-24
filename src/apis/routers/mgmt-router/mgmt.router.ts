@@ -63,54 +63,54 @@ mgmtRouter.get("/targets", async (_req, res) => {
 });
 
 mgmtRouter.post(
-        "/target",
-        validator.validate({ body: postTargetSchema }),
-        async (req, res) => {
-            const body = req.body;
+    "/target",
+    validator.validate({body: postTargetSchema}),
+    async (req, res) => {
+        const body = req.body;
 
-            if (!isValidURL(body.target))
-                return res.status(400).send(MGMT_STATUS.TARGET_INVAVLID_URL);
+        if (!isValidURL(body.target))
+            return res.status(400).send(MGMT_STATUS.TARGET_INVAVLID_URL);
 
-            try {
-                const newTarget = new targetModel({
-                    name: body.name,
-                    target: body.target,
-                    tag: body.tag ?? []
-                });
-                await newTarget.save();
+        try {
+            const newTarget = new targetModel({
+                name: body.name,
+                target: body.target,
+                tag: body.tag ?? []
+            });
+            await newTarget.save();
 
-                return res.status(201).send({
-                    msg: MGMT_STATUS.TARGET_ADDED,
-                });
-            } catch (error) {
-                console.error(error);
-                res.status(500).send({ msg: MGMT_STATUS.TARGET_ADD_FAILED });
-            }
-        });
+            return res.status(201).send({
+                msg: MGMT_STATUS.TARGET_ADDED,
+            });
+        } catch (error) {
+            console.error(error);
+            res.status(500).send({msg: MGMT_STATUS.TARGET_ADD_FAILED});
+        }
+    });
 
 mgmtRouter.delete(
-        "/target",
-        async (req, res) => {
-            if (!req.query.id)
-                return res.status(400).send(MGMT_STATUS.TARGET_INVALID_ID);
+    "/target",
+    async (req, res) => {
+        if (!req.query.id)
+            return res.status(400).send(MGMT_STATUS.TARGET_INVALID_ID);
 
-            try {
-                const target = await targetModel.findById(req.query.id);
-                if (!target)
-                    return res.status(400).send(MGMT_STATUS.TARGET_FIND_FAILED);
+        try {
+            const target = await targetModel.findById(req.query.id);
+            if (!target)
+                return res.status(400).send(MGMT_STATUS.TARGET_FIND_FAILED);
 
-                const trashedTarget = new targetTrashModel(target.toObject());
+            const trashedTarget = new targetTrashModel(target.toObject());
 
-                await trashedTarget.save();
-                await target.deleteOne();
+            await trashedTarget.save();
+            await target.deleteOne();
 
-                return res.status(201).send({
-                    msg: MGMT_STATUS.TARGET_DELETEED,
-                });
-            } catch (error) {
-                console.error(error);
-                res.status(500).send({ msg: MGMT_STATUS.TARGET_DELETE_FAILED });
-            }
-        });
+            return res.status(201).send({
+                msg: MGMT_STATUS.TARGET_DELETEED,
+            });
+        } catch (error) {
+            console.error(error);
+            res.status(500).send({msg: MGMT_STATUS.TARGET_DELETE_FAILED});
+        }
+    });
 
-export { mgmtRouter, MGMT_STATUS };
+export {mgmtRouter, MGMT_STATUS};
