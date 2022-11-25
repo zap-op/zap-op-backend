@@ -1,4 +1,5 @@
 import database from "../database";
+import {Schema} from "mongoose";
 
 export const TARGET_COLLECTION =
     "targets" + (process.env.NODE_ENV === "development" ? "_tests" : "");
@@ -8,6 +9,10 @@ export const TARGET_TRASH_COLLECTION =
 
 const targetSchema = new database!.Schema(
     {
+        userId: {
+            type: Schema.Types.ObjectId,
+            required: true,
+        },
         name: {
             type: String,
             required: true

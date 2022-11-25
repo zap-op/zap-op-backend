@@ -1,12 +1,10 @@
 import {expressjwt} from "express-jwt";
 import {Request, Response, NextFunction} from "express";
-import {JwtPayload} from "jsonwebtoken";
 import {signJwt} from "./crypto";
 import {
     ACCESS_TOKEN_MAX_AGE,
-    ACCESS_TOKEN_NAME,
-    LOGIN_STATUS,
-    REFRESH_TOKEN_NAME
+    LOGIN_STATUS, TOKEN_TYPE,
+    UserTokenData
 } from "../apis/routers/login-router/login.router";
 
 if (!process.env.ZAP_OP_PRIVATE_KEY)
@@ -16,8 +14,8 @@ export function parseAccessTokenMdw() {
     return expressjwt({
         secret: process.env.ZAP_OP_PRIVATE_KEY!,
         algorithms: ["HS256"],
-        getToken: req => req.cookies[ACCESS_TOKEN_NAME],
-        requestProperty: ACCESS_TOKEN_NAME,
+        getToken: req => req.cookies[TOKEN_TYPE.ACCESS],
+        requestProperty: TOKEN_TYPE.ACCESS,
         credentialsRequired: false
     });
 }
@@ -26,24 +24,27 @@ export function parseRefreshTokenMdw() {
     return expressjwt({
         secret: process.env.ZAP_OP_PRIVATE_KEY!,
         algorithms: ["HS256"],
-        getToken: req => req.cookies[REFRESH_TOKEN_NAME],
-        requestProperty: REFRESH_TOKEN_NAME,
+        getToken: req => req.cookies[TOKEN_TYPE.REFRESH],
+        requestProperty: TOKEN_TYPE.REFRESH,
         credentialsRequired: false
     });
 }
 
 export function authenAccessMdw(req: JWTRequest, res: Response, next: NextFunction) {
-    if (!req.access_token && !req.refresh_token)
+    if (!req.accessToken && !req.refreshToken)
         return res.status(400).send({ msg: LOGIN_STATUS.TOKEN_NOT_FOUND });
 
-    if (!req.access_token) {
-        const newAccessToken = signJwt({ ...req.refresh_token!, typ: ACCESS_TOKEN_NAME }, ACCESS_TOKEN_MAX_AGE);
-        res.cookie(ACCESS_TOKEN_NAME, newAccessToken, { maxAge: ACCESS_TOKEN_MAX_AGE });
+    if (!req.accessToken) {
+        const newAccessToken = Object.assign({}, req.refreshToken, { type: TOKEN_TYPE.ACCESS });
+        delete newAccessToken.exp;
+
+        req.accessToken = newAccessToken;
+        res.cookie(TOKEN_TYPE.ACCESS, signJwt(newAccessToken, ACCESS_TOKEN_MAX_AGE), { maxAge: ACCESS_TOKEN_MAX_AGE });
     }
     next();
 }
 
-export type JWTRequest<T = JwtPayload> = Request & {
-    [ACCESS_TOKEN_NAME]?: T,
-    [REFRESH_TOKEN_NAME]?: T
+export type JWTRequest<T = UserTokenData> = Request & {
+    [TOKEN_TYPE.ACCESS]?: T,
+    [TOKEN_TYPE.REFRESH]?: T
 };

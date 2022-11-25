@@ -21,53 +21,99 @@ export const LOGIN_STATUS = {
     USER_ADD_FAILED: {
         statusCode: -3,
         msg: "New user failed to add",
+    },
+    USER_ALREADY_LINKED: {
+        statusCode: -4,
+        msg: "Google account already used with different email",
+    },
+    EMAIL_ALREADY_USED: {
+        statusCode: -5,
+        msg: "Email already used",
     }
 };
 
-export const GOOGLE_TOKEN_NAME = "gg_token";
-export const ACCESS_TOKEN_NAME = "access_token";
+export interface GgUserData {
+    sub: string,
+    email?: string,
+    emailVerified?: boolean,
+    name?: string,
+    picture?: string,
+    givenName?: string,
+    familyName?: string
+}
+
+export enum TOKEN_TYPE {
+    GOOGLE = "ggToken",
+    ACCESS = "accessToken",
+    REFRESH = "refreshToken"
+}
+
 export const ACCESS_TOKEN_MAX_AGE = 60 * 60;
-export const REFRESH_TOKEN_NAME = "refresh_token";
 export const REFRESH_TOKEN_MAX_AGE = 7 * 24 * 60 * 60;
 
+export interface JwtPayload {
+    iss?: string | undefined;
+    sub?: string | undefined;
+    aud?: string | string[] | undefined;
+    exp?: number | undefined;
+    nbf?: number | undefined;
+    iat?: number | undefined;
+    jti?: string | undefined;
+}
+
+export type UserTokenData = JwtPayload & GgUserData & {
+    userId: string,
+    type: TOKEN_TYPE
+};
+
 loginRouter.post("/", async (req, res) => {
-    if (!req.cookies[GOOGLE_TOKEN_NAME] || (typeof req.cookies[GOOGLE_TOKEN_NAME] !== "string"))
+    if (!req.cookies[TOKEN_TYPE.GOOGLE] || (typeof req.cookies[TOKEN_TYPE.GOOGLE] !== "string"))
         return res.status(400).send({msg: LOGIN_STATUS.TOKEN_NOT_FOUND});
 
     let googleData = undefined;
     try {
-        googleData = await isValidGoogleIDToken(req.cookies[GOOGLE_TOKEN_NAME]);
+        googleData = await isValidGoogleIDToken(req.cookies[TOKEN_TYPE.GOOGLE]);
     } catch (err) {
         console.error(err);
         return res.status(400).send({msg: LOGIN_STATUS.TOKEN_INVALID});
     }
 
-    const userObj = {
+    const userObj: GgUserData = {
         sub: googleData.sub,
         email: googleData.email,
-        email_verified: googleData.email_verified,
+        emailVerified: googleData.email_verified,
         name: googleData.name,
         picture: googleData.picture,
-        given_name: googleData.given_name,
-        family_name: googleData.family_name
+        givenName: googleData.given_name,
+        familyName: googleData.family_name
     };
+    let userId: string;
 
     try {
-        const user = await userModel.findOne({"email": userObj.email});
-        if (!user) {
+        const userBySub = await userModel.findOne({"sub": userObj.sub});
+        if (!userBySub) {
+            const userByEmail = await userModel.findOne({"email": userObj.email});
+            if (userByEmail)
+                return res.status(500).send({msg: LOGIN_STATUS.EMAIL_ALREADY_USED});
+
             const newUser = new userModel(userObj);
-            await newUser.save();
+            userId = (await newUser.save()).id;
+        }
+        else {
+            if (userBySub.email !== userObj.email)
+                return res.status(500).send({msg: LOGIN_STATUS.USER_ALREADY_LINKED});
+            userId = userBySub.id;
         }
     } catch (error) {
         console.error(error);
         return res.status(500).send({msg: LOGIN_STATUS.USER_ADD_FAILED});
     }
 
-    const accessToken = signJwt({...userObj, typ: ACCESS_TOKEN_NAME}, ACCESS_TOKEN_MAX_AGE);
-    const refreshToken = signJwt({...userObj, typ: REFRESH_TOKEN_NAME}, REFRESH_TOKEN_MAX_AGE);
+    const accessToken = signJwt({...userObj, userId, type: TOKEN_TYPE.ACCESS}, ACCESS_TOKEN_MAX_AGE);
+    const refreshToken = signJwt({...userObj, userId, type: TOKEN_TYPE.REFRESH}, REFRESH_TOKEN_MAX_AGE);
     res.status(200)
-        .cookie(ACCESS_TOKEN_NAME, accessToken, {maxAge: ACCESS_TOKEN_MAX_AGE})
-        .cookie(REFRESH_TOKEN_NAME, refreshToken, {maxAge: REFRESH_TOKEN_MAX_AGE})
+        .cookie(TOKEN_TYPE.ACCESS, accessToken, {maxAge: ACCESS_TOKEN_MAX_AGE})
+        .cookie(TOKEN_TYPE.REFRESH, refreshToken, {maxAge: REFRESH_TOKEN_MAX_AGE})
         .send({msg: LOGIN_STATUS.LOGIN_SUCCESS});
 });
 

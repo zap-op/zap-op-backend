@@ -3,6 +3,7 @@ import {Validator} from "express-json-validator-middleware";
 import {JSONSchema7} from "json-schema";
 import {targetModel, targetTrashModel} from "../../../database/models/target.model";
 import {isValidURL} from "../../../utils/validator";
+import {JWTRequest} from "../../../utils/middlewares";
 
 const mgmtRouter = express.Router();
 const validator = new Validator({});
@@ -57,15 +58,15 @@ const postTargetSchema: JSONSchema7 = {
     required: ["name", "target"],
 };
 
-mgmtRouter.get("/targets", async (_req, res) => {
-    const targets = await targetModel.find();
+mgmtRouter.get("/targets", async (req: JWTRequest, res) => {
+    const targets = await targetModel.find({ "userId": req.accessToken!.userId });
     res.status(200).json(targets);
 });
 
 mgmtRouter.post(
     "/target",
     validator.validate({body: postTargetSchema}),
-    async (req, res) => {
+    async (req: JWTRequest, res) => {
         const body = req.body;
 
         if (!isValidURL(body.target))
@@ -73,6 +74,7 @@ mgmtRouter.post(
 
         try {
             const newTarget = new targetModel({
+                userId: req.accessToken!.userId,
                 name: body.name,
                 target: body.target,
                 tag: body.tag ?? []
@@ -90,13 +92,13 @@ mgmtRouter.post(
 
 mgmtRouter.delete(
     "/target",
-    async (req, res) => {
+    async (req: JWTRequest, res) => {
         if (!req.query.id)
             return res.status(400).send(MGMT_STATUS.TARGET_INVALID_ID);
 
         try {
             const target = await targetModel.findById(req.query.id);
-            if (!target)
+            if (!target || target.userId.toString() !== req.accessToken!.userId)
                 return res.status(400).send(MGMT_STATUS.TARGET_FIND_FAILED);
 
             const trashedTarget = new targetTrashModel(target.toObject());
