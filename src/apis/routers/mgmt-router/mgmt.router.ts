@@ -81,12 +81,10 @@ mgmtRouter.post(
             });
             await newTarget.save();
 
-            return res.status(201).send({
-                msg: MGMT_STATUS.TARGET_ADDED,
-            });
+            return res.status(201).send(MGMT_STATUS.TARGET_ADDED);
         } catch (error) {
             console.error(error);
-            res.status(500).send({msg: MGMT_STATUS.TARGET_ADD_FAILED});
+            res.status(500).send(MGMT_STATUS.TARGET_ADD_FAILED);
         }
     });
 
@@ -106,12 +104,10 @@ mgmtRouter.delete(
             await trashedTarget.save();
             await target.deleteOne();
 
-            return res.status(201).send({
-                msg: MGMT_STATUS.TARGET_DELETEED,
-            });
+            return res.status(201).send(MGMT_STATUS.TARGET_DELETEED);
         } catch (error) {
             console.error(error);
-            res.status(500).send({msg: MGMT_STATUS.TARGET_DELETE_FAILED});
+            res.status(500).send(MGMT_STATUS.TARGET_DELETE_FAILED);
         }
     });
 
