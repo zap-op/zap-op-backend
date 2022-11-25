@@ -68,14 +68,14 @@ export type UserTokenData = JwtPayload & GgUserData & {
 
 loginRouter.post("/", async (req, res) => {
     if (!req.cookies[TOKEN_TYPE.GOOGLE] || (typeof req.cookies[TOKEN_TYPE.GOOGLE] !== "string"))
-        return res.status(400).send({msg: LOGIN_STATUS.TOKEN_NOT_FOUND});
+        return res.status(400).send(LOGIN_STATUS.TOKEN_NOT_FOUND);
 
     let googleData = undefined;
     try {
         googleData = await isValidGoogleIDToken(req.cookies[TOKEN_TYPE.GOOGLE]);
     } catch (err) {
         console.error(err);
-        return res.status(400).send({msg: LOGIN_STATUS.TOKEN_INVALID});
+        return res.status(400).send(LOGIN_STATUS.TOKEN_INVALID);
     }
 
     const userObj: GgUserData = {
@@ -94,19 +94,19 @@ loginRouter.post("/", async (req, res) => {
         if (!userBySub) {
             const userByEmail = await userModel.findOne({"email": userObj.email});
             if (userByEmail)
-                return res.status(500).send({msg: LOGIN_STATUS.EMAIL_ALREADY_USED});
+                return res.status(500).send(LOGIN_STATUS.EMAIL_ALREADY_USED);
 
             const newUser = new userModel(userObj);
             userId = (await newUser.save()).id;
         }
         else {
             if (userBySub.email !== userObj.email)
-                return res.status(500).send({msg: LOGIN_STATUS.USER_ALREADY_LINKED});
+                return res.status(500).send(LOGIN_STATUS.USER_ALREADY_LINKED);
             userId = userBySub.id;
         }
     } catch (error) {
         console.error(error);
-        return res.status(500).send({msg: LOGIN_STATUS.USER_ADD_FAILED});
+        return res.status(500).send(LOGIN_STATUS.USER_ADD_FAILED);
     }
 
     const accessToken = signJwt({...userObj, userId, type: TOKEN_TYPE.ACCESS}, ACCESS_TOKEN_MAX_AGE);
@@ -114,7 +114,7 @@ loginRouter.post("/", async (req, res) => {
     res.status(200)
         .cookie(TOKEN_TYPE.ACCESS, accessToken, {maxAge: ACCESS_TOKEN_MAX_AGE})
         .cookie(TOKEN_TYPE.REFRESH, refreshToken, {maxAge: REFRESH_TOKEN_MAX_AGE})
-        .send({msg: LOGIN_STATUS.LOGIN_SUCCESS});
+        .send(LOGIN_STATUS.LOGIN_SUCCESS);
 });
 
 export default loginRouter;

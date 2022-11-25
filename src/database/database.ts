@@ -9,7 +9,7 @@ const connect = async function () {
         console.error("MONGO_CONNECTION_STRING not found");
     else {
         try {
-            database = await mongoose.connect(process.env.MONGO_CONNECTION_STRING);
+            database = await mongoose.connect(process.env.MONGO_CONNECTION_STRING, { autoIndex: true });
             database.connection.on("error", async () => {
                 console.error("Mongo connection error");
                 await connect();

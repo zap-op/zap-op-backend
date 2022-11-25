@@ -32,7 +32,7 @@ export function parseRefreshTokenMdw() {
 
 export function authenAccessMdw(req: JWTRequest, res: Response, next: NextFunction) {
     if (!req.accessToken && !req.refreshToken)
-        return res.status(400).send({ msg: LOGIN_STATUS.TOKEN_NOT_FOUND });
+        return res.status(400).send(LOGIN_STATUS.TOKEN_NOT_FOUND);
 
     if (!req.accessToken) {
         const newAccessToken = Object.assign({}, req.refreshToken, { type: TOKEN_TYPE.ACCESS });

@@ -11,7 +11,7 @@ const targetSchema = new database!.Schema(
     {
         userId: {
             type: Schema.Types.ObjectId,
-            required: true,
+            required: true
         },
         name: {
             type: String,
@@ -30,7 +30,7 @@ const targetSchema = new database!.Schema(
             createdAt: true,
             updatedAt: true,
         },
-    });
+    }).index({ userId: 1, name: 1 }, { unique: true });
 
 export const targetModel = database!.model(TARGET_COLLECTION, targetSchema);
 
