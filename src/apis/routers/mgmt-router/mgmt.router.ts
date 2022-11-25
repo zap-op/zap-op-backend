@@ -36,6 +36,10 @@ const MGMT_STATUS = {
     TARGET_DELETE_FAILED: {
         statusCode: -5,
         msg: "Target failed to delete",
+    },
+    TARGET_NAME_DUPLICATE: {
+        statusCode: -6,
+        msg: "Target name already exist",
     }
 };
 
@@ -73,6 +77,12 @@ mgmtRouter.post(
             return res.status(400).send(MGMT_STATUS.TARGET_INVAVLID_URL);
 
         try {
+            if (await targetModel.findOne({
+                userId: req.accessToken!.userId,
+                name: body.name
+            }))
+                return res.status(400).send(MGMT_STATUS.TARGET_NAME_DUPLICATE);
+
             const newTarget = new targetModel({
                 userId: req.accessToken!.userId,
                 name: body.name,
