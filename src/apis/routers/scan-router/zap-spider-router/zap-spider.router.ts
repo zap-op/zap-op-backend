@@ -7,6 +7,7 @@ import {ZAPError} from "../../../../utils/errors/zap.error";
 import ZAPService from "../../../../scan-services/zap-service/zap.service";
 import {SCAN_STATUS} from "../scan.router";
 import {isValidObjectId} from "mongoose";
+import {JWTRequest} from "../../../../utils/middlewares";
 
 const zapSpiderRouter = express.Router();
 const validator = new Validator({});
@@ -49,7 +50,7 @@ const postZapSpiderSchema: JSONSchema7 = {
 zapSpiderRouter.post(
     "/",
     validator.validate({body: postZapSpiderSchema}),
-    async (req, res) => {
+    async (req: JWTRequest, res) => {
         const body = req.body;
 
         if (!isValidURL(body.url))
@@ -58,7 +59,7 @@ zapSpiderRouter.post(
         try {
             const scanSession = new zapSpiderScanSessionModel({
                 url: body.url,
-                authId: body.authId,
+                userId: req.accessToken!.userId,
                 scanConfig: {
                     maxChildren: body.scanConfig.maxChildren,
                     recurse: body.scanConfig.recurse,
@@ -78,10 +79,11 @@ zapSpiderRouter.post(
     }
 );
 
-zapSpiderRouter.get("/", async (req, res) => {
+zapSpiderRouter.get("/", async (req: JWTRequest, res) => {
     const scanSession = req.query.scanSession;
     if (!scanSession || !isValidObjectId(scanSession))
         return res.status(500).send(SCAN_STATUS.INVALID_SESSION);
+
     const headers = {
         "Content-Type": "text/event-stream",
         "Connection": "keep-alive",
@@ -92,9 +94,8 @@ zapSpiderRouter.get("/", async (req, res) => {
     try {
         const scanSessionDoc: any = await zapSpiderScanSessionModel
             .findById(scanSession);
-        if (!scanSessionDoc) {
+        if (!scanSessionDoc || scanSessionDoc.userId.toString() !== req.accessToken!.userId)
             throw ReferenceError("scanSessionDoc is not defined");
-        }
 
         req.on("close", () => {
             console.log(`client session ${scanSessionDoc._id} disconnect`);
@@ -106,9 +107,9 @@ zapSpiderRouter.get("/", async (req, res) => {
             scanSessionDoc.__t,
             scanSessionDoc.scanConfig
         );
-        if (isNaN(scanId)) {
+
+        if (isNaN(scanId))
             throw new ZAPError("scanId type not suitable");
-        }
 
         zap.emitProgress(res, scanSessionDoc.__t, scanId);
     } catch (error) {

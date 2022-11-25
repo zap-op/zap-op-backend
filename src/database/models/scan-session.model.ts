@@ -14,6 +14,7 @@ export const scanSessionModel = database!.model(
             },
             userId: {
                 type: Schema.Types.ObjectId,
+                required: true,
             },
         },
         {

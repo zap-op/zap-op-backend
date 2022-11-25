@@ -8,13 +8,14 @@ export const userModel = database!.model(USER_COLLECTION, new database!.Schema(
         sub: {
             type: String,
             required: true,
+            unique: true
         },
         email: {
             type: String,
             required: true,
             unique: true
         },
-        email_verified: {
+        emailVerified: {
             type: Boolean,
             required: true
         },
@@ -26,11 +27,11 @@ export const userModel = database!.model(USER_COLLECTION, new database!.Schema(
             type: String,
             required: true
         },
-        given_name: {
+        givenName: {
             type: String,
             required: true
         },
-        family_name: {
+        familyName: {
             type: String,
             required: true
         }
