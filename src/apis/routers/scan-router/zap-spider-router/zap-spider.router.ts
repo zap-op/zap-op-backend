@@ -12,13 +12,10 @@ import {JWTRequest} from "../../../../utils/middlewares";
 const zapSpiderRouter = express.Router();
 const validator = new Validator({});
 
-const postZapSpiderSchema: JSONSchema7 = {
+export const postZapSpiderSchema: JSONSchema7 = {
     type: "object",
     properties: {
         url: {
-            type: "string",
-        },
-        type: {
             type: "string",
         },
         scanConfig: {
@@ -44,7 +41,7 @@ const postZapSpiderSchema: JSONSchema7 = {
             },
         },
     },
-    required: ["url", "type"],
+    required: ["url"],
 };
 
 zapSpiderRouter.post(
@@ -130,4 +127,4 @@ zapSpiderRouter.get("/", async (req: JWTRequest, res) => {
     }
 });
 
-export default zapSpiderRouter;
+export {zapSpiderRouter};

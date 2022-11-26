@@ -6,10 +6,10 @@ import {UserTokenData} from "../apis/routers/login-router/login.router";
  * Generate a SHA1 hash by timestamp
  * @return
  */
-export function genSHA1() {
+export function genSHA512(payload?: any) {
     return crypto
-        .createHash("sha1")
-        .update(Date.now().toString())
+        .createHash("sha512")
+        .update(payload ? payload.toString() : Date.now().toString())
         .digest("base64");
 }
 
