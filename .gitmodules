@@ -1,0 +1,3 @@
+[submodule "src/submodules/utility"]
+	path = src/submodules/utility
+	url = https://github.com/zap-op/utility.git
