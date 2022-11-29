@@ -1,5 +1,7 @@
 import express from "express";
-import zapSpiderRouter from "./zap-spider-router/zap-spider.router";
+import {zapSpiderRouter} from "./zap-spider-router/zap-spider.router";
+import {authenAccessMdw, parseAccessTokenMdw, parseRefreshTokenMdw} from "../../../utils/middlewares";
+import {zapSpiderTrialRouter} from "./trial-router/trial.router";
 
 const SCAN_STATUS = {
     SESSION_INITIALIZE_SUCCEED: {
@@ -32,6 +34,8 @@ const SCAN_STATUS = {
 
 const scanRouter = express.Router();
 
-scanRouter.use("/zap-spider", zapSpiderRouter);
+scanRouter.use("/zap-spider", parseAccessTokenMdw(), parseRefreshTokenMdw(), authenAccessMdw, zapSpiderRouter);
+
+scanRouter.use("/zap-spider-trial", zapSpiderTrialRouter);
 
 export {scanRouter, SCAN_STATUS};

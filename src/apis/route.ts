@@ -6,6 +6,6 @@ import {parseAccessTokenMdw, parseRefreshTokenMdw, authenAccessMdw} from "../uti
 
 export function initRoutes(app: Express) {
     app.use("/login", loginRouter);
-    app.use("/scan", parseAccessTokenMdw(), parseRefreshTokenMdw(), authenAccessMdw, scanRouter);
+    app.use("/scan", scanRouter);
     app.use("/management", parseAccessTokenMdw(), parseRefreshTokenMdw(), authenAccessMdw, mgmtRouter);
 }
