@@ -4,44 +4,10 @@ import {JSONSchema7} from "json-schema";
 import {targetModel, targetTrashModel} from "../../../database/models/target.model";
 import {isValidURL} from "../../../utils/validator";
 import {JWTRequest} from "../../../utils/middlewares";
+import {MGMT_STATUS} from "../../../submodules/utility/status";
 
 const mgmtRouter = express.Router();
 const validator = new Validator({});
-
-const MGMT_STATUS = {
-    TARGET_ADDED: {
-        statusCode: 0,
-        msg: "Target added successfully",
-    },
-    TARGET_DELETEED: {
-        statusCode: 1,
-        msg: "Target deleted successfully",
-    },
-    TARGET_INVAVLID_URL: {
-        statusCode: -1,
-        msg: "Invalid URL for target",
-    },
-    TARGET_ADD_FAILED: {
-        statusCode: -2,
-        msg: "Target failed to add",
-    },
-    TARGET_INVALID_ID: {
-        statusCode: -3,
-        msg: "Invalid ID for target",
-    },
-    TARGET_FIND_FAILED: {
-        statusCode: -4,
-        msg: "Target failed to find",
-    },
-    TARGET_DELETE_FAILED: {
-        statusCode: -5,
-        msg: "Target failed to delete",
-    },
-    TARGET_NAME_DUPLICATE: {
-        statusCode: -6,
-        msg: "Target name already exist",
-    }
-};
 
 const postTargetSchema: JSONSchema7 = {
     type: "object",

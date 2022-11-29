@@ -5,9 +5,9 @@ import {isValidURL} from "../../../../utils/validator";
 import {zapSpiderScanSessionModel} from "../../../../database/models/zap-spider.scan-session.model";
 import {ZAPError} from "../../../../utils/errors/zap.error";
 import ZAPService from "../../../../scan-services/zap-service/zap.service";
-import {SCAN_STATUS} from "../scan.router";
 import {isValidObjectId} from "mongoose";
 import {JWTRequest} from "../../../../utils/middlewares";
+import {SCAN_STATUS} from "../../../../submodules/utility/status";
 
 const zapSpiderRouter = express.Router();
 const validator = new Validator({});

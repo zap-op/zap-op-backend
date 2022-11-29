@@ -2,35 +2,9 @@ import express from "express";
 import {isValidGoogleIDToken} from "../../../utils/validator";
 import {signJwt} from "../../../utils/crypto";
 import {userModel} from "../../../database/models/user.model";
+import {LOGIN_STATUS} from "../../../submodules/utility/status";
 
 const loginRouter = express.Router();
-
-export const LOGIN_STATUS = {
-    LOGIN_SUCCESS: {
-        statusCode: 0,
-        msg: "Login successfully"
-    },
-    TOKEN_NOT_FOUND: {
-        statusCode: -1,
-        msg: "No token found",
-    },
-    TOKEN_INVALID: {
-        statusCode: -2,
-        msg: "Invalid token",
-    },
-    USER_ADD_FAILED: {
-        statusCode: -3,
-        msg: "New user failed to add",
-    },
-    USER_ALREADY_LINKED: {
-        statusCode: -4,
-        msg: "Google account already used with different email",
-    },
-    EMAIL_ALREADY_USED: {
-        statusCode: -5,
-        msg: "Email already used",
-    }
-};
 
 export interface GgUserData {
     sub: string,

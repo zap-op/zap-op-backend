@@ -3,9 +3,10 @@ import {Request, Response, NextFunction} from "express";
 import {signJwt} from "./crypto";
 import {
     ACCESS_TOKEN_MAX_AGE,
-    LOGIN_STATUS, TOKEN_TYPE,
+    TOKEN_TYPE,
     UserTokenData
 } from "../apis/routers/login-router/login.router";
+import {LOGIN_STATUS} from "../submodules/utility/status";
 
 if (!process.env.ZAP_OP_PRIVATE_KEY)
     throw "ZAP_OP_PRIVATE_KEY not found";
