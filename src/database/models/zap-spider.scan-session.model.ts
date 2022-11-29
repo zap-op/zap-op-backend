@@ -1,10 +1,11 @@
 import database from "../database";
 import {scanSessionModel} from "./scan-session.model";
 import {SCAN_TYPE} from "./scan-session.type";
+import {TZapSpiderScanSession} from "../../submodules/utility/model.type";
 
-export const zapSpiderScanSessionModel = scanSessionModel.discriminator(
+export const zapSpiderScanSessionModel = scanSessionModel.discriminator<TZapSpiderScanSession>(
     SCAN_TYPE.ZAP.SPIDER,
-    new database!.Schema({
+    new database!.Schema<TZapSpiderScanSession>({
         scanConfig: {
             maxChildren: {
                 type: Number,
