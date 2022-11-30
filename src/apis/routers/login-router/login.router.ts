@@ -4,18 +4,9 @@ import {signJwt} from "../../../utils/crypto";
 import {userModel} from "../../../database/models/user.model";
 import {LOGIN_STATUS} from "../../../submodules/utility/status";
 import { ACCESS_TOKEN_MAX_AGE, REFRESH_TOKEN_MAX_AGE, TOKEN_TYPE } from "../../../submodules/utility/token";
+import { GgUserData } from "../../../submodules/utility/user";
 
 const loginRouter = express.Router();
-
-export interface GgUserData {
-    sub: string,
-    email?: string,
-    emailVerified?: boolean,
-    name?: string,
-    picture?: string,
-    givenName?: string,
-    familyName?: string
-}
 
 export interface JwtPayload {
     iss?: string | undefined;
