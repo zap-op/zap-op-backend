@@ -1,6 +1,6 @@
 import database from "../database";
 import {Schema} from "mongoose";
-import {TTarget} from "../../submodules/utility/model.type";
+import {TTarget} from "../../submodules/utility/model";
 
 export const TARGET_COLLECTION =
     "targets" + (process.env.NODE_ENV === "development" ? "_tests" : "");

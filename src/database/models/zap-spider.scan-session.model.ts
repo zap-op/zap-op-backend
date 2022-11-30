@@ -1,7 +1,7 @@
 import database from "../database";
 import {scanSessionModel} from "./scan-session.model";
 import {SCAN_TYPE} from "./scan-session.type";
-import {TZapSpiderScanSession} from "../../submodules/utility/model.type";
+import {TZapSpiderScanSession} from "../../submodules/utility/model";
 
 export const zapSpiderScanSessionModel = scanSessionModel.discriminator<TZapSpiderScanSession>(
     SCAN_TYPE.ZAP.SPIDER,
