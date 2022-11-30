@@ -3,6 +3,7 @@ import {isValidGoogleIDToken} from "../../../utils/validator";
 import {signJwt} from "../../../utils/crypto";
 import {userModel} from "../../../database/models/user.model";
 import {LOGIN_STATUS} from "../../../submodules/utility/status";
+import { ACCESS_TOKEN_MAX_AGE, REFRESH_TOKEN_MAX_AGE, TOKEN_TYPE } from "../../../submodules/utility/token";
 
 const loginRouter = express.Router();
 
@@ -15,15 +16,6 @@ export interface GgUserData {
     givenName?: string,
     familyName?: string
 }
-
-export enum TOKEN_TYPE {
-    GOOGLE = "ggToken",
-    ACCESS = "accessToken",
-    REFRESH = "refreshToken"
-}
-
-export const ACCESS_TOKEN_MAX_AGE = 60 * 60;
-export const REFRESH_TOKEN_MAX_AGE = 7 * 24 * 60 * 60;
 
 export interface JwtPayload {
     iss?: string | undefined;
