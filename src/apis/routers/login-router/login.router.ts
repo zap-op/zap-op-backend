@@ -2,54 +2,11 @@ import express from "express";
 import {isValidGoogleIDToken} from "../../../utils/validator";
 import {signJwt} from "../../../utils/crypto";
 import {userModel} from "../../../database/models/user.model";
+import {LOGIN_STATUS} from "../../../submodules/utility/status";
+import { ACCESS_TOKEN_MAX_AGE, REFRESH_TOKEN_MAX_AGE, TOKEN_TYPE } from "../../../submodules/utility/token";
+import { GgUserData } from "../../../submodules/utility/user";
 
 const loginRouter = express.Router();
-
-export const LOGIN_STATUS = {
-    LOGIN_SUCCESS: {
-        statusCode: 0,
-        msg: "Login successfully"
-    },
-    TOKEN_NOT_FOUND: {
-        statusCode: -1,
-        msg: "No token found",
-    },
-    TOKEN_INVALID: {
-        statusCode: -2,
-        msg: "Invalid token",
-    },
-    USER_ADD_FAILED: {
-        statusCode: -3,
-        msg: "New user failed to add",
-    },
-    USER_ALREADY_LINKED: {
-        statusCode: -4,
-        msg: "Google account already used with different email",
-    },
-    EMAIL_ALREADY_USED: {
-        statusCode: -5,
-        msg: "Email already used",
-    }
-};
-
-export interface GgUserData {
-    sub: string,
-    email?: string,
-    emailVerified?: boolean,
-    name?: string,
-    picture?: string,
-    givenName?: string,
-    familyName?: string
-}
-
-export enum TOKEN_TYPE {
-    GOOGLE = "ggToken",
-    ACCESS = "accessToken",
-    REFRESH = "refreshToken"
-}
-
-export const ACCESS_TOKEN_MAX_AGE = 60 * 60;
-export const REFRESH_TOKEN_MAX_AGE = 7 * 24 * 60 * 60;
 
 export interface JwtPayload {
     iss?: string | undefined;

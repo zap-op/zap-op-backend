@@ -1,9 +1,10 @@
 import database from "../database";
+import {TUser} from "../../submodules/utility/model";
 
 export const USER_COLLECTION =
     "users" + (process.env.NODE_ENV === "development" ? "_tests" : "");
 
-export const userModel = database!.model(USER_COLLECTION, new database!.Schema(
+export const userModel = database!.model<TUser>(USER_COLLECTION, new database!.Schema<TUser>(
     {
         sub: {
             type: String,

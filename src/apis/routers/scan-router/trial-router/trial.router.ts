@@ -2,8 +2,8 @@ import express from "express";
 import {isValidURL} from "../../../../utils/validator";
 import {ZAPError} from "../../../../utils/errors/zap.error";
 import ZAPService from "../../../../scan-services/zap-service/zap.service";
-import {SCAN_STATUS} from "../scan.router";
 import {SCAN_TYPE} from "../../../../database/models/scan-session.type";
+import {SCAN_STATUS} from "../../../../submodules/utility/status";
 
 const zapSpiderTrialRouter = express.Router();
 
