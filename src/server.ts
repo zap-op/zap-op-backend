@@ -40,8 +40,8 @@ app.use((err: any, _req: any, res: any, next: any) => {
     next();
 });
 
-const port = process.env.PORT || 8888;
-const server = app.listen(port, () => {
+const PORT = 8888;
+const server = app.listen(PORT, () => {
     const addr = server.address();
     console.log("Started REST server", addr);
 });
