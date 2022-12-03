@@ -1,4 +1,7 @@
 import "dotenv/config";
+import {setupProcessExitHooks} from "./utils/system";
+
+setupProcessExitHooks();
 
 import database from "./database/database";
 if (!database) throw Error("Failed to connect DB");
