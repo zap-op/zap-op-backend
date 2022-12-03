@@ -11,8 +11,8 @@ class ZAPService {
 
     private constructor() {
         const opts = {
-            apiKey: process.env.ZAP_API_KEY,
-            proxy: (process.env.ZAP_HOST || "localhost") + ":" + (process.env.ZAP_HOST_PORT || 8080),
+            apiKey: process.env.ZAP_APIKKEY,
+            proxy: "localhost:" + (process.env.ZAP_PORT || 8080),
         };
         this.service = new ZapClient(opts);
     }
