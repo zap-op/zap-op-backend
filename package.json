@@ -5,11 +5,11 @@
     "type": "module",
     "main": "src/server.js",
     "scripts": {
-        "pre-build": "npm run rmdir src/dist",
         "rmdir": "node -e \"var fs = require('fs'); process.argv.slice(-1).map((fpath) => { try { fs.rmSync(fpath, { recursive: true }); } catch (error) { console.warn(`Error: no such file or directory, ulink '${fpath}'`); return; } console.log(`Delete '${fpath}' successfully`); });\"",
-        "build": "npm run pre-build && npx tsc -p src/",
-        "start": "npm run build && node --es-module-specifier-resolution=node src/dist/server.js",
-        "dev": "npm run build && concurrently \"npx tsc --watch\" \"nodemon -q --es-module-specifier-resolution=node src/dist/server.js\""
+        "pre-build": "npm run rmdir dist",
+        "build": "npm run pre-build && npx tsc",
+        "start": "npm run build && node --es-module-specifier-resolution=node dist/server.js",
+        "dev": "npm run pre-build && concurrently \"npx tsc --watch\" \"nodemon -q --es-module-specifier-resolution=node dist/server.js\""
     },
     "author": "Huy Pham",
     "license": "ISC",
