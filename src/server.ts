@@ -1,7 +1,11 @@
 import "dotenv/config";
 import {setupProcessExitHooks} from "./utils/system";
+import {startZapProcess} from "./utils/zap";
 
 setupProcessExitHooks();
+// Only need to cleanup ZAP, not to explicitly kill ZAP when program exits
+// As ZAP is a child process, it will be terminated as well
+startZapProcess();
 
 import database from "./database/database";
 if (!database) throw Error("Failed to connect DB");

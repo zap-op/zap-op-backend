@@ -1,6 +1,9 @@
+import {fileURLToPath} from "url";
+import {dirname} from 'path';
+
 export function setupProcessExitHooks() {
-    process.on("zapteardown", () => {
-        console.log("Process custom zapteardown event");
+    process.on("zapcleanup", () => {
+        console.log("Process custom zapcleanup event");
     });
 
     // Only works when there is no task running
@@ -12,7 +15,7 @@ export function setupProcessExitHooks() {
     // Only works when the process normally exits
     // Ctrl-c will not trigger this handler (it is abnormal)
     process.on("exit", (code) => {
-        (process.emit as Function)("zapteardown");
+        (process.emit as Function)("zapcleanup");
         console.log(`Process exit event with code: ${code}`);
     });
 
@@ -32,4 +35,9 @@ export function setupProcessExitHooks() {
         console.log(`Uncaught Exception: ${err.message}`);
         process.exit(1);
     });
+}
+
+export function dirName(fileMeta: any) {
+    const __filename = fileURLToPath(fileMeta.url);
+    return dirname(__filename);
 }
