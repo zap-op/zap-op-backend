@@ -2,6 +2,7 @@ import {execSync, spawn} from "child_process";
 import path from "path";
 import {dirName} from "./system";
 import os from "os";
+import chalk from "chalk";
 
 const ZAP_ROOT = path.join(dirName(import.meta), "..", "..", "ZAP_2.12.0");
 const ZAP_EXE = path.join(ZAP_ROOT, os.platform() === "win32" ? "zap.bat" : "zap.sh");
@@ -10,7 +11,7 @@ export function getZapVersion() {
     try {
         return execSync(`${ZAP_EXE} -version`).toString();
     } catch (e) {
-        console.log("Failed to get ZAP version");
+        console.error("Failed to get ZAP version");
     }
 }
 
@@ -32,11 +33,11 @@ export function startZapProcess() {
     const proc = spawn(ZAP_EXE, zapOptions);
 
     proc.stdout.on('data', (data) => {
-        console.log(`ZAP stdout: ${data}`);
+        console.log(chalk.bgBlueBright(`ZAP stdout: ${data}`));
     });
 
     proc.stderr.on('data', (data) => {
-        console.error(`ZAP stderr: ${data}`);
+        console.error(chalk.bgBlueBright(`ZAP stderr: ${data}`));
     });
 
     proc.on('close', (code) => {

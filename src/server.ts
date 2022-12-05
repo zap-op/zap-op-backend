@@ -9,7 +9,6 @@ startZapProcess();
 
 import database from "./database/database";
 if (!database) throw Error("Failed to connect DB");
-
 console.log("Connected to DB");
 
 import express from "express";
@@ -43,7 +42,6 @@ app.use((err: any, _req: any, res: any, next: any) => {
     res.status(400).json({
         msg: err.validationErrors,
     });
-
     next();
 });
 
