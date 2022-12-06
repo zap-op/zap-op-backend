@@ -14,6 +14,7 @@ import {
     of,
     finalize
 } from "rxjs";
+import {mainProc} from "../../utils/log";
 
 const ZAP_POLL_DELAY = 5000;
 const ZAP_POLL_INTERVAL = 5000;
@@ -35,7 +36,7 @@ export async function initSpider(url: string, config: any) {
         );
         return result.scan;
     } catch (err) {
-        console.error(`Error while init zap spider: ${err}`);
+        mainProc.error(`Error while init zap spider: ${err}`);
     }
 }
 
@@ -57,13 +58,13 @@ export function spiderProgressStream(scanId: number, emitDistinct?: boolean, rem
         catchError(err => { throw `Error while polling zap spider status: ${err}` }),
         finalize(async () => {
             let res = await ZAPService.spider.stop(scanId);
-            if (res.Result === "OK") console.log(`Scan ${scanId} stopped successfully`);
-            else console.error(`Failed to stop scan ${scanId}`);
+            if (res.Result === "OK") mainProc.info(`Scan ${scanId} stopped successfully`);
+            else mainProc.error(`Failed to stop scan ${scanId}`);
 
             if (removeOnDone) {
                 res = await ZAPService.spider.removeScan(scanId);
-                if (res.Result === "OK") console.log(`Scan ${scanId} removed successfully`);
-                else console.error(`Failed to remove scan ${scanId}`);
+                if (res.Result === "OK") mainProc.info(`Scan ${scanId} removed successfully`);
+                else mainProc.error(`Failed to remove scan ${scanId}`);
             }
         })
     );
@@ -74,7 +75,7 @@ export async function spiderResults(scanId: number, offset?: number) {
         const results = await ZAPService.spider.results(scanId);
         return offset ? results.splice(offset) : results;
     } catch (err) {
-        console.error(`Error while getting zap spider results: ${err}`);
+        mainProc.error(`Error while getting zap spider results: ${err}`);
     }
 }
 
@@ -93,6 +94,6 @@ export async function spiderFullResults(scanId: number, offset?: TFullResultsCon
 
         return results;
     } catch (err) {
-        console.error(`Error while getting zap spider full results: ${err}`);
+        mainProc.error(`Error while getting zap spider full results: ${err}`);
     }
 }

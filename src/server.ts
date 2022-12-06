@@ -1,4 +1,5 @@
 import "dotenv/config";
+import {mainProc} from "./utils/log";
 import {setupProcessExitHooks} from "./utils/system";
 import {startZapProcess} from "./utils/zap";
 
@@ -9,7 +10,7 @@ startZapProcess();
 
 import database from "./database/database";
 if (!database) throw Error("Failed to connect DB");
-console.log("Connected to DB");
+mainProc.info("Connected to DB");
 
 import express from "express";
 const app = express();
@@ -48,5 +49,5 @@ app.use((err: any, _req: any, res: any, next: any) => {
 const PORT = 8888;
 const server = app.listen(PORT, () => {
     const addr = server.address();
-    console.log("Started REST server", addr);
+    mainProc.info("Started REST server", addr);
 });

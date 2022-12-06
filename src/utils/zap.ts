@@ -2,7 +2,7 @@ import {execSync, spawn} from "child_process";
 import path from "path";
 import {dirName} from "./system";
 import os from "os";
-import chalk from "chalk";
+import {mainProc, zapProc} from "./log";
 
 const ZAP_ROOT = path.join(dirName(import.meta), "..", "..", "ZAP_2.12.0");
 const ZAP_EXE = path.join(ZAP_ROOT, os.platform() === "win32" ? "zap.bat" : "zap.sh");
@@ -11,7 +11,7 @@ export function getZapVersion() {
     try {
         return execSync(`${ZAP_EXE} -version`).toString();
     } catch (e) {
-        console.error("Failed to get ZAP version");
+        mainProc.warn("Failed to get ZAP version");
     }
 }
 
@@ -19,8 +19,8 @@ if (!process.env.ZAP_APIKEY)
     throw "ZAP_APIKEY not found";
 
 export function startZapProcess() {
-    console.log("Starting ZAP process");
-    console.log(`ZAP version: ${getZapVersion()}`);
+    mainProc.info("Starting ZAP process");
+    mainProc.info(`ZAP version: ${getZapVersion()}`);
 
     const zapOptions = [
         "-daemon", "-addoninstallall", "-addonupdate",
@@ -33,18 +33,18 @@ export function startZapProcess() {
     const proc = spawn(ZAP_EXE, zapOptions);
 
     proc.stdout.on('data', (data) => {
-        console.log(chalk.bgBlueBright(`ZAP stdout: ${data}`));
+        zapProc.info(data);
     });
 
     proc.stderr.on('data', (data) => {
-        console.error(chalk.bgBlueBright(`ZAP stderr: ${data}`));
+        zapProc.error(data);
     });
 
     proc.on('close', (code) => {
-        console.log(`ZAP process exited with code ${code}`);
+        mainProc.info(`ZAP process exited with code ${code}`);
     });
 
     proc.on('error', (err) => {
-        console.error(`ZAP process encounter error: ${err}`);
+        mainProc.error(`ZAP process encounter error: ${err}`);
     });
 }

@@ -3,6 +3,7 @@ import {isValidURL} from "../../../../utils/validator";
 import {SCAN_STATUS} from "../../../../submodules/utility/status";
 import {initSpider, spiderProgressStream} from "../../../../scan-services/zap-service/zap.service";
 import {serializeSSEEvent} from "../../../../utils/network";
+import {mainProc, userSession} from "../../../../utils/log";
 
 const trialRouter = express.Router();
 
@@ -36,11 +37,11 @@ trialRouter.get("/", async (req, res) => {
         });
 
         req.on("close", () => {
-            console.log("ZAP spider trial session disconnected");
+            userSession.info("One trial session disconnected");
             writer.unsubscribe();
         });
     } catch (error) {
-        console.error(`Error while polling ZAP spider results: ${error}`);
+        mainProc.error(`Error while polling ZAP spider results: ${error}`);
         res.write(serializeSSEEvent("error", error));
     }
 });

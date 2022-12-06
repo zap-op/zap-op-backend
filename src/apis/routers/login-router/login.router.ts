@@ -5,6 +5,7 @@ import {userModel} from "../../../database/models/user.model";
 import {LOGIN_STATUS} from "../../../submodules/utility/status";
 import { ACCESS_TOKEN_MAX_AGE, REFRESH_TOKEN_MAX_AGE, TOKEN_TYPE } from "../../../submodules/utility/token";
 import { GgUserData } from "../../../submodules/utility/user";
+import {mainProc} from "../../../utils/log";
 
 const loginRouter = express.Router();
 
@@ -31,7 +32,7 @@ loginRouter.post("/", async (req, res) => {
     try {
         googleData = await isValidGoogleIDToken(req.cookies[TOKEN_TYPE.GOOGLE]);
     } catch (err) {
-        console.error(err);
+        mainProc.error(err);
         return res.status(400).send(LOGIN_STATUS.TOKEN_INVALID);
     }
 
@@ -62,7 +63,7 @@ loginRouter.post("/", async (req, res) => {
             userId = userBySub.id;
         }
     } catch (error) {
-        console.error(error);
+        mainProc.error(error);
         return res.status(500).send(LOGIN_STATUS.USER_ADD_FAILED);
     }
 
