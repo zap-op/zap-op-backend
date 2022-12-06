@@ -1,15 +1,15 @@
 import express from "express";
 import {Validator} from "express-json-validator-middleware";
 import {JSONSchema7} from "json-schema";
-import {isValidURL} from "../../../../utils/validator";
-import {zapSpiderScanSessionModel} from "../../../../database/models/zap-spider.scan-session.model";
-import {ZAPError} from "../../../../utils/errors/zap.error";
-import ZAPService from "../../../../scan-services/zap-service/zap.service";
-import {isValidObjectId} from "mongoose";
 import {JWTRequest} from "../../../../utils/middlewares";
+import {isValidURL} from "../../../../utils/validator";
 import {SCAN_STATUS} from "../../../../submodules/utility/status";
+import {zapSpiderScanSessionModel} from "../../../../database/models/zap-spider.scan-session.model";
+import {isValidObjectId} from "mongoose";
+import {initSpider, spiderProgressStream} from "../../../../scan-services/zap-service/zap.service";
+import {serializeSSEEvent} from "../../../../utils/network";
 
-const zapSpiderRouter = express.Router();
+const zapRouter = express.Router();
 const validator = new Validator({});
 
 export const postZapSpiderSchema: JSONSchema7 = {
@@ -44,8 +44,8 @@ export const postZapSpiderSchema: JSONSchema7 = {
     required: ["url"],
 };
 
-zapSpiderRouter.post(
-    "/",
+zapRouter.post(
+    "/spider",
     validator.validate({body: postZapSpiderSchema}),
     async (req: JWTRequest, res) => {
         const body = req.body;
@@ -76,7 +76,7 @@ zapSpiderRouter.post(
     }
 );
 
-zapSpiderRouter.get("/", async (req: JWTRequest, res) => {
+zapRouter.get("/spider", async (req: JWTRequest, res) => {
     const scanSession = req.query.scanSession;
     if (!scanSession || !isValidObjectId(scanSession))
         return res.status(500).send(SCAN_STATUS.INVALID_SESSION);
@@ -92,39 +92,27 @@ zapSpiderRouter.get("/", async (req: JWTRequest, res) => {
         const scanSessionDoc: any = await zapSpiderScanSessionModel
             .findById(scanSession);
         if (!scanSessionDoc || scanSessionDoc.userId.toString() !== req.accessToken!.userId)
-            throw ReferenceError("scanSessionDoc is not defined");
+            return res.write(serializeSSEEvent("error", SCAN_STATUS.INVALID_SESSION));
 
-        req.on("close", () => {
-            console.log(`client session ${scanSessionDoc._id} disconnect`);
+        const scanId = await initSpider(scanSessionDoc.url, scanSessionDoc.scanConfig);
+        if (!scanId)
+            return res.write(serializeSSEEvent("error", SCAN_STATUS.ZAP_SPIDER_INITIALIZE_FAIL));
+
+        const emitDistinct = req.query.emitDistinct === "true";
+        const removeOnDone = req.query.removeOnDone === "true";
+        const writer = spiderProgressStream(scanId, emitDistinct, removeOnDone).subscribe({
+            next: status => res.write(serializeSSEEvent("status", status)),
+            error: err => res.write(serializeSSEEvent("error", err))
         });
 
-        const zap = ZAPService.instance();
-        const scanId: number = await zap.scan(
-            scanSessionDoc.url,
-            scanSessionDoc.__t,
-            scanSessionDoc.scanConfig
-        );
-
-        if (isNaN(scanId))
-            throw new ZAPError("scanId type not suitable");
-
-        zap.emitProgress(res, scanSessionDoc.__t, scanId);
+        req.on("close", () => {
+            console.log(`ZAP spider session ${scanSessionDoc._id} disconnected`);
+            writer.unsubscribe();
+        });
     } catch (error) {
-        console.log(error);
-
-        let errData: object = SCAN_STATUS.INTERNAL_ERROR;
-
-        if (error instanceof Error) {
-            if (error instanceof ReferenceError)
-                errData = SCAN_STATUS.INVALID_SESSION;
-            else if (error instanceof ZAPError)
-                errData = SCAN_STATUS.ZAP_SERVICE_ERROR;
-
-            errData = {...errData, exception: error.message};
-        }
-
-        res.write(`event: error\ndata: ${JSON.stringify(errData)}\n\n`);
+        console.error(`Error while polling ZAP spider results: ${error}`);
+        res.write(serializeSSEEvent("error", error));
     }
 });
 
-export {zapSpiderRouter};
+export {zapRouter};
