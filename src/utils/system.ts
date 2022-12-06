@@ -1,6 +1,7 @@
 import {fileURLToPath} from "url";
 import {dirname} from "path";
 import chalk from "chalk";
+import {flushLoggers} from "./log";
 
 export function setupProcessExitHooks() {
     process.on("zapcleanup", () => {
@@ -17,7 +18,8 @@ export function setupProcessExitHooks() {
     // Ctrl-c will not trigger this handler (it is abnormal)
     process.on("exit", (code) => {
         (process.emit as Function)("zapcleanup");
-        console.log(chalk.bgYellowBright(`Process exit event with code: ${code}`));
+        flushLoggers();
+        console.log(`Process exit event with code: ${code}`);
     });
 
     // Works when user using "kill" command
