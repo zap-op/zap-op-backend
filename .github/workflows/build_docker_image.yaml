@@ -2,6 +2,8 @@ name: Build and Push Docker image with latest source code
 
 on:
     push:
+        branchs:
+            - main
     workflow_dispatch:
 
 jobs:
