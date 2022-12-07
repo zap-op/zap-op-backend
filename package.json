@@ -28,6 +28,8 @@
         "mongoose-schema-jsonschema": "^2.0.2",
         "rxjs": "^7.6.0",
         "validator": "^13.7.0",
+        "winston": "^3.8.2",
+        "winston-daily-rotate-file": "^4.7.1",
         "zaproxy": "^1.0.1"
     },
     "devDependencies": {

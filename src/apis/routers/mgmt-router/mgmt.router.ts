@@ -5,6 +5,7 @@ import {targetModel, targetTrashModel} from "../../../database/models/target.mod
 import {isValidURL} from "../../../utils/validator";
 import {JWTRequest} from "../../../utils/middlewares";
 import {MGMT_STATUS} from "../../../submodules/utility/status";
+import {mainProc} from "../../../utils/log";
 
 const mgmtRouter = express.Router();
 const validator = new Validator({});
@@ -59,7 +60,7 @@ mgmtRouter.post(
 
             return res.status(201).send(MGMT_STATUS.TARGET_ADDED);
         } catch (error) {
-            console.error(error);
+            mainProc.error(error);
             res.status(500).send(MGMT_STATUS.TARGET_ADD_FAILED);
         }
     });
@@ -82,7 +83,7 @@ mgmtRouter.delete(
 
             return res.status(201).send(MGMT_STATUS.TARGET_DELETEED);
         } catch (error) {
-            console.error(error);
+            mainProc.error(error);
             res.status(500).send(MGMT_STATUS.TARGET_DELETE_FAILED);
         }
     });

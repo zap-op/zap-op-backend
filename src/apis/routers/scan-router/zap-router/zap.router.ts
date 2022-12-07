@@ -8,6 +8,7 @@ import {zapSpiderScanSessionModel} from "../../../../database/models/zap-spider.
 import {isValidObjectId} from "mongoose";
 import {initSpider, spiderProgressStream} from "../../../../scan-services/zap-service/zap.service";
 import {serializeSSEEvent} from "../../../../utils/network";
+import {mainProc, userSession} from "../../../../utils/log";
 
 const zapRouter = express.Router();
 const validator = new Validator({});
@@ -70,7 +71,7 @@ zapRouter.post(
                 scanStatus: SCAN_STATUS.SESSION_INITIALIZE_SUCCEED,
             });
         } catch (error) {
-            console.error(error);
+            mainProc.error(error);
             res.status(500).send(SCAN_STATUS.SESSION_INITIALIZE_FAIL);
         }
     }
@@ -106,11 +107,11 @@ zapRouter.get("/spider", async (req: JWTRequest, res) => {
         });
 
         req.on("close", () => {
-            console.log(`ZAP spider session ${scanSessionDoc._id} disconnected`);
+            userSession.info(`ZAP spider session ${scanSessionDoc._id} disconnected`);
             writer.unsubscribe();
         });
     } catch (error) {
-        console.error(`Error while polling ZAP spider results: ${error}`);
+        mainProc.error(`Error while polling ZAP spider results: ${error}`);
         res.write(serializeSSEEvent("error", error));
     }
 });
