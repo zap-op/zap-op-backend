@@ -42,6 +42,6 @@ export function setupProcessExitHooks() {
 }
 
 export function dirName(fileMeta: any) {
-    const __filename = fileURLToPath(fileMeta.url);
-    return dirname(__filename);
+    const fileName = fileURLToPath(fileMeta.url);
+    return dirname(fileName);
 }

@@ -3,6 +3,8 @@ import {mainProc} from "./utils/log";
 import {setupProcessExitHooks} from "./utils/system";
 import {startZapProcess} from "./utils/zap";
 
+mainProc.info("Starting server");
+
 setupProcessExitHooks();
 // Only need to cleanup ZAP, not to explicitly kill ZAP when program exits
 // As ZAP is a child process, it will be terminated as well
