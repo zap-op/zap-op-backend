@@ -9,7 +9,7 @@ const ZAP_EXE = path.join(ZAP_ROOT, os.platform() === "win32" ? "zap.bat" : "zap
 
 export function getZapVersion() {
     try {
-        return execSync(`${ZAP_EXE} -version`).toString();
+        return execSync(`"${ZAP_EXE}" -version`).toString();
     } catch (e) {
         mainProc.warn("Failed to get ZAP version");
     }
