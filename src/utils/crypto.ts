@@ -1,6 +1,6 @@
 import crypto from "crypto";
 import jwt from "jsonwebtoken";
-import {UserTokenData} from "../apis/routers/login-router/login.router";
+import { UserTokenData } from "../submodules/utility/user";
 
 /**
  * Generate a SHA1 hash by timestamp
