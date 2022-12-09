@@ -9,21 +9,6 @@ import {mainProc} from "../../../utils/log";
 
 const loginRouter = express.Router();
 
-export interface JwtPayload {
-    iss?: string | undefined;
-    sub?: string | undefined;
-    aud?: string | string[] | undefined;
-    exp?: number | undefined;
-    nbf?: number | undefined;
-    iat?: number | undefined;
-    jti?: string | undefined;
-}
-
-export type UserTokenData = JwtPayload & GgUserData & {
-    userId: string,
-    type: TOKEN_TYPE
-};
-
 loginRouter.post("/", async (req, res) => {
     if (!req.cookies[TOKEN_TYPE.GOOGLE] || (typeof req.cookies[TOKEN_TYPE.GOOGLE] !== "string"))
         return res.status(400).send(LOGIN_STATUS.TOKEN_NOT_FOUND);
