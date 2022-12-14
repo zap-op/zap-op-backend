@@ -81,7 +81,7 @@ mgmtRouter.delete(
             await trashedTarget.save();
             await target.deleteOne();
 
-            return res.status(201).send(MGMT_STATUS.TARGET_DELETEED);
+            return res.status(201).send(MGMT_STATUS.TARGET_MOVED_TO_TRASH);
         } catch (error) {
             mainProc.error(error);
             res.status(500).send(MGMT_STATUS.TARGET_DELETE_FAILED);
