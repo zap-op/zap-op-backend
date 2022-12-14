@@ -70,12 +70,16 @@ export function spiderProgressStream(scanId: number, emitDistinct?: boolean, rem
 }
 
 export async function spiderResults(scanId: number, offset?: number) {
-    try {
-        const results = await ZAPService.spider.results(scanId);
-        return offset ? results.splice(offset) : results;
-    } catch (err) {
-        mainProc.error(`Error while getting zap spider results: ${err}`);
-    }
+    const results: string[] = await ZAPService.spider.results(scanId)
+        .then((response: {
+            results: string[]
+        }) => {
+            return response.results;
+        })
+        .catch((error: any) => {
+            mainProc.error(`Error while getting zap spider results: ${error}`);
+        });
+    return offset ? results.slice(offset) : results;
 }
 
 export type TFullResultsConfig = { urlsInScope: number, urlsOutOfScope: number, urlsIoError: number };
