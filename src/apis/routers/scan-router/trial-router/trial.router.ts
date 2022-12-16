@@ -56,7 +56,7 @@ trialRouter.get("/results", async (req, res) => {
     if (!scanId || isNaN(parseInt(scanId)))
         return res.status(400).send(SCAN_STATUS.INVALID_ID);
 
-    const offset = req.query.offet as string ?? 0;
+    const offset = req.query.offset as string ?? 0;
     if (isNaN(parseInt(offset)))
         return res.status(400).send(SCAN_STATUS.INVALID_RESULT_OFFSET);
 
