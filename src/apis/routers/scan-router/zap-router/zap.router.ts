@@ -6,7 +6,7 @@ import {isValidURL} from "../../../../utils/validator";
 import {SCAN_STATUS} from "../../../../submodules/utility/status";
 import {zapSpiderScanSessionModel} from "../../../../database/models/zap-spider.scan-session.model";
 import {isValidObjectId} from "mongoose";
-import {initSpider, spiderProgressStream} from "../../../../scan-services/zap-service/zap.service";
+import {initSpider, spiderProgressStream, spiderResults} from "../../../../scan-services/zap-service/zap.service";
 import {serializeSSEEvent} from "../../../../utils/network";
 import {mainProc, userSession} from "../../../../utils/log";
 
@@ -114,6 +114,22 @@ zapRouter.get("/spider", async (req: JWTRequest, res) => {
         mainProc.error(`Error while polling ZAP spider results: ${error}`);
         res.write(serializeSSEEvent("error", error));
     }
+});
+
+zapRouter.get("/spider/results", async (req, res) => {
+    const scanId = req.query.id as string;
+    if (!scanId || isNaN(parseInt(scanId)))
+        return res.status(400).send(SCAN_STATUS.INVALID_ID);
+
+    const offset = req.query.offet as string ?? 0;
+    if (isNaN(parseInt(offset)))
+        return res.status(400).send(SCAN_STATUS.INVALID_RESULT_OFFSET);
+
+    const results = await spiderResults(parseInt(scanId), parseInt(offset));
+    if (!results)
+        return res.status(400).send(SCAN_STATUS.INVALID_ID);
+
+    return res.status(200).send(results);
 });
 
 export {zapRouter};
