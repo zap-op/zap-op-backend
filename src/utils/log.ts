@@ -2,100 +2,112 @@ import winston from "winston";
 import "winston-daily-rotate-file";
 import path from "path";
 import {dirName} from "./system";
+import * as Transport from "winston-transport";
 
 const LOG_DIR = path.join(dirName(import.meta), "..", "..", "logs");
-const LOG_TYPE = {
-    MAIN_PROC: "mainProc",
-    HTTP_REQUEST: "httpRequest",
-    USER_SESSION: "userSession",
-    ZAP_PROC: "zapProc"
+
+enum INTERNAL_LOG_TYPES {
+    MAIN_PROC = "mainProc",
+    HTTP_REQUEST = "httpRequest",
+    USER_SESSION = "userSession",
+    ZAP_PROC = "zapProc"
+}
+
+const sharedLoggerOpt = (logType: string) => {
+    return {
+        format: winston.format.combine(
+            winston.format.timestamp(),
+            winston.format.label({label: logType, message: true})
+        ),
+        level: "verbose",
+        exitOnError: false,
+        handleExceptions: true,
+        handleRejections: true,
+    };
 };
 
-const sharedLoggerOption = {
-    level: "verbose",
-    exitOnError: false,
-    handleExceptions: true,
-    handleRejections: true,
+export const sharedFileTransportOpt = (logType: string) => {
+    return new winston.transports.DailyRotateFile({
+        format: winston.format.simple(),
+        filename: `${logType}-%DATE%`,
+        dirname: LOG_DIR,
+        datePattern: "YYYY-MM-DD-HH",
+        maxSize: "10m",
+        zippedArchive: true
+    })
 };
 
-winston.loggers.add(LOG_TYPE.MAIN_PROC, Object.assign({}, sharedLoggerOption, {
-    format: winston.format.combine(
-        winston.format.timestamp(),
-        winston.format.label({label: LOG_TYPE.MAIN_PROC, message: true})
-    ),
-    transports: [
-        new winston.transports.Console({format: winston.format.cli()}),
-        new winston.transports.DailyRotateFile({
-            format: winston.format.simple(),
-            filename: `${LOG_TYPE.MAIN_PROC}-%DATE%`,
-            dirname: LOG_DIR,
-            datePattern: "YYYY-MM-DD-HH",
-            maxSize: "10m",
-            zippedArchive: true
-        })
-    ]
-}));
+export const sharedConsoleTransportOpt = () => {
+    return new winston.transports.Console({format: winston.format.cli()});
+};
 
-winston.loggers.add(LOG_TYPE.HTTP_REQUEST, Object.assign({}, sharedLoggerOption, {
-    format: winston.format.combine(
-        winston.format.timestamp(),
-        winston.format.label({label: LOG_TYPE.HTTP_REQUEST, message: true})
-    ),
-    transports: [
-        new winston.transports.DailyRotateFile({
-            format: winston.format.simple(),
-            filename: `${LOG_TYPE.HTTP_REQUEST}-%DATE%`,
-            dirname: LOG_DIR,
-            datePattern: "YYYY-MM-DD-HH",
-            maxSize: "10m",
-            zippedArchive: true
-        })
-    ]
-}));
+winston.loggers.add(INTERNAL_LOG_TYPES.MAIN_PROC, Object.assign(
+    {},
+    sharedLoggerOpt(INTERNAL_LOG_TYPES.MAIN_PROC),
+    {
+        transports: [
+            sharedConsoleTransportOpt(),
+            sharedFileTransportOpt(INTERNAL_LOG_TYPES.MAIN_PROC)
+        ]
+    }
+));
 
-winston.loggers.add(LOG_TYPE.USER_SESSION, Object.assign({}, sharedLoggerOption, {
-    format: winston.format.combine(
-        winston.format.timestamp(),
-        winston.format.label({label: LOG_TYPE.USER_SESSION, message: true})
-    ),
-    transports: [
-        new winston.transports.DailyRotateFile({
-            format: winston.format.simple(),
-            filename: `${LOG_TYPE.USER_SESSION}-%DATE%`,
-            dirname: LOG_DIR,
-            datePattern: "YYYY-MM-DD-HH",
-            maxSize: "10m",
-            zippedArchive: true
-        })
-    ]
-}));
+winston.loggers.add(INTERNAL_LOG_TYPES.HTTP_REQUEST, Object.assign(
+    {},
+    sharedLoggerOpt(INTERNAL_LOG_TYPES.HTTP_REQUEST),
+    {
+        transports: [
+            sharedFileTransportOpt(INTERNAL_LOG_TYPES.HTTP_REQUEST)
+        ]
+    }));
 
-winston.loggers.add(LOG_TYPE.ZAP_PROC, Object.assign({}, sharedLoggerOption, {
-    format: winston.format.combine(
-        winston.format.timestamp(),
-        winston.format.label({label: LOG_TYPE.ZAP_PROC, message: true})
-    ),
-    transports: [
-        new winston.transports.Console({format: winston.format.cli()}),
-        new winston.transports.DailyRotateFile({
-            format: winston.format.simple(),
-            filename: `${LOG_TYPE.ZAP_PROC}-%DATE%`,
-            dirname: LOG_DIR,
-            datePattern: "YYYY-MM-DD-HH",
-            maxSize: "10m",
-            zippedArchive: true
-        })
-    ]
-}));
+winston.loggers.add(INTERNAL_LOG_TYPES.USER_SESSION, Object.assign(
+    {},
+    sharedLoggerOpt(INTERNAL_LOG_TYPES.USER_SESSION),
+    {
+        transports: [
+            sharedFileTransportOpt(INTERNAL_LOG_TYPES.USER_SESSION)
+        ]
+    }));
 
-export const mainProc = winston.loggers.get(LOG_TYPE.MAIN_PROC);
-export const httpRequest = winston.loggers.get(LOG_TYPE.HTTP_REQUEST);
-export const userSession = winston.loggers.get(LOG_TYPE.USER_SESSION);
-export const zapProc = winston.loggers.get(LOG_TYPE.ZAP_PROC);
+winston.loggers.add(INTERNAL_LOG_TYPES.ZAP_PROC, Object.assign(
+    {},
+    sharedLoggerOpt(INTERNAL_LOG_TYPES.ZAP_PROC),
+    {
+        transports: [
+            sharedFileTransportOpt(INTERNAL_LOG_TYPES.ZAP_PROC)
+        ]
+    }));
 
-export function flushLoggers() {
+export const mainProc = winston.loggers.get(INTERNAL_LOG_TYPES.MAIN_PROC);
+export const httpRequest = winston.loggers.get(INTERNAL_LOG_TYPES.HTTP_REQUEST);
+export const userSession = winston.loggers.get(INTERNAL_LOG_TYPES.USER_SESSION);
+export const zapProc = winston.loggers.get(INTERNAL_LOG_TYPES.ZAP_PROC);
+
+const customRegisteredLogger: winston.Logger[] = [];
+
+export function registerCustomLogger(logType: string, transportsOpt: Transport[]) {
+    winston.loggers.add(logType, Object.assign(
+        {},
+        sharedLoggerOpt(logType),
+        {
+            transports: transportsOpt
+        }));
+
+    const logger = winston.loggers.get(logType);
+    customRegisteredLogger.push(logger);
+    return logger;
+}
+
+export function endCustomLogger(logger: winston.Logger) {
+    logger.end();
+    customRegisteredLogger.splice(customRegisteredLogger.indexOf(logger), 1);
+}
+
+export function endAllLoggers() {
     mainProc.end();
     httpRequest.end();
     userSession.end();
     zapProc.end();
+    customRegisteredLogger.forEach(logger => logger.end());
 }

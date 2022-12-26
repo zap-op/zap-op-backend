@@ -31,7 +31,7 @@ const targetSchema = new database!.Schema<TTarget>(
             createdAt: true,
             updatedAt: true,
         },
-    }).index({ userId: 1, name: 1 }, { unique: true });
+    }).index({userId: 1, name: 1}, {unique: true});
 
 export const targetModel = database!.model<TTarget>(TARGET_COLLECTION, targetSchema);
 

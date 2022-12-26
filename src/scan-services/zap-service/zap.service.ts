@@ -1,32 +1,42 @@
 // @ts-ignore
 import ZapClient from "zaproxy";
 import {
-    Subject,
-    from,
-    timer,
-    switchMap,
-    retry,
-    identity,
+    catchError,
     distinctUntilChanged,
+    finalize,
+    from,
+    identity,
+    retry,
+    Subject,
+    switchMap,
     takeUntil,
     tap,
-    catchError,
-    finalize
+    timer
 } from "rxjs";
 import {mainProc} from "../../utils/log";
+import {TZapAjaxFullResultsConfig, TZapSpiderFullResultsConfig} from "../../submodules/utility/config";
 
 const ZAP_POLL_DELAY = 5000;
 const ZAP_POLL_INTERVAL = 5000;
 const ZAP_POLL_MAX_RETRY = 5;
 
-const ZAPService = new ZapClient({
-    apiKey: process.env.ZAP_APIKEY,
-    proxy: "http://127.0.0.1:" + (process.env.ZAP_PORT || 8080),
-});
+let zapServiceShared: ZapClient;
 
-export async function initSpider(url: string, config: any) {
+export function connectZapService(port: number): ZapClient {
+    return new ZapClient({
+        apiKey: process.env.ZAP_APIKEY,
+        proxy: `http://127.0.0.1:${port}`
+    });
+}
+
+export function connectZapServiceShared(port: number) {
+    zapServiceShared = connectZapService(port);
+}
+
+// BEGIN ZAP SPIDER
+export async function spiderScan(url: string, config: any) {
     try {
-        const result = await ZAPService.spider.scan(
+        const result = await zapServiceShared.spider.scan(
             url,
             config.maxChildren,
             config.recurse,
@@ -39,12 +49,12 @@ export async function initSpider(url: string, config: any) {
     }
 }
 
-export function spiderProgressStream(scanId: number, emitDistinct?: boolean, removeOnDone?: boolean) {
+export function spiderStatusStream(scanId: number, emitDistinct?: boolean, removeOnDone?: boolean) {
     const stopEmit$ = new Subject<boolean>();
     let done = false;
 
     return timer(ZAP_POLL_DELAY, ZAP_POLL_INTERVAL).pipe(
-        switchMap(_ => from(ZAPService.spider.status(scanId))),
+        switchMap(_ => from(zapServiceShared.spider.status(scanId))),
         retry(ZAP_POLL_MAX_RETRY),
         emitDistinct ? distinctUntilChanged((prev: any, cur: any) => prev.status === cur.status) : identity,
         takeUntil(stopEmit$),
@@ -54,14 +64,16 @@ export function spiderProgressStream(scanId: number, emitDistinct?: boolean, rem
                 else stopEmit$.next(true);
             }
         }),
-        catchError(err => { throw `Error while polling zap spider status: ${err}` }),
+        catchError(err => {
+            throw `Error while polling zap spider status: ${err}`
+        }),
         finalize(async () => {
-            let res = await ZAPService.spider.stop(scanId);
+            let res = await zapServiceShared.spider.stop(scanId);
             if (res.Result === "OK") mainProc.info(`Scan ${scanId} stopped successfully`);
             else mainProc.error(`Failed to stop scan ${scanId}`);
 
             if (removeOnDone) {
-                res = await ZAPService.spider.removeScan(scanId);
+                res = await zapServiceShared.spider.removeScan(scanId);
                 if (res.Result === "OK") mainProc.info(`Scan ${scanId} removed successfully`);
                 else mainProc.error(`Failed to remove scan ${scanId}`);
             }
@@ -70,7 +82,7 @@ export function spiderProgressStream(scanId: number, emitDistinct?: boolean, rem
 }
 
 export async function spiderResults(scanId: number, offset?: number) {
-    const results: string[] = await ZAPService.spider.results(scanId)
+    const results: string[] = await zapServiceShared.spider.results(scanId)
         .then((response: {
             results: string[]
         }) => {
@@ -82,11 +94,9 @@ export async function spiderResults(scanId: number, offset?: number) {
     return offset ? results.slice(offset) : results;
 }
 
-export type TFullResultsConfig = { urlsInScope: number, urlsOutOfScope: number, urlsIoError: number };
-
-export async function spiderFullResults(scanId: number, offset?: TFullResultsConfig) {
+export async function spiderFullResults(scanId: number, offset?: TZapSpiderFullResultsConfig) {
     try {
-        const results = await ZAPService.spider.fullResults(scanId);
+        const results = await zapServiceShared.spider.fullResults(scanId);
 
         if (offset?.urlsInScope)
             results.urlsInScope.splice(offset?.urlsInScope);
@@ -100,3 +110,82 @@ export async function spiderFullResults(scanId: number, offset?: TFullResultsCon
         mainProc.error(`Error while getting zap spider full results: ${err}`);
     }
 }
+
+// END ZAP SPIDER
+
+// BEGIN ZAP AJAX
+export async function ajaxScan(service: ZapClient, url: string, config: any) {
+    try {
+        // TODO: Only support chrome-headless for now
+        let result = await service.ajaxSpider.setOptionBrowserId("chrome-headless");
+        if (result.Result !== "OK")
+            return result.Result;
+
+        result = await service.ajaxSpider.scan(
+            url,
+            config.inScope,
+            config.contextName,
+            config.subtreeOnly
+        );
+        return result.Result;
+    } catch (err) {
+        mainProc.error(`ZapService: ${service}\nError while init zap ajax: ${err}`);
+    }
+}
+
+export function ajaxStatusStream(service: ZapClient) {
+    const stopEmit$ = new Subject<boolean>();
+    let done = false;
+
+    return timer(ZAP_POLL_DELAY, ZAP_POLL_INTERVAL).pipe(
+        switchMap(_ => from(service.ajaxSpider.status())),
+        retry(ZAP_POLL_MAX_RETRY),
+        takeUntil(stopEmit$),
+        tap((val: any) => {
+            if (val.status === "stopped") {
+                if (!done) done = true;
+                else stopEmit$.next(true);
+            }
+        }),
+        catchError(err => {
+            throw `ZapService: ${service}\nError while polling zap ajax status: ${err}`
+        }),
+        finalize(async () => {
+            let res = await service.ajaxSpider.stop();
+            if (res.Result === "OK") mainProc.info("Ajax scan stopped successfully");
+            else mainProc.error("Failed to stop ajax scan");
+        })
+    );
+}
+
+export async function ajaxResults(service: ZapClient, offset?: number) {
+    const results: string[] = await service.ajaxSpider.results()
+        .then((response: {
+            results: any[]
+        }) => {
+            return response.results;
+        })
+        .catch((error: any) => {
+            mainProc.error(`ZapService: ${service}\nError while getting zap ajax results: ${error}`);
+        });
+    return offset ? results.slice(offset) : results;
+}
+
+export async function ajaxFullResults(service: ZapClient, offset?: TZapAjaxFullResultsConfig) {
+    try {
+        const results = await service.ajaxSpider.fullResults();
+
+        if (offset?.inScope)
+            results.inScope.splice(offset?.inScope);
+        if (offset?.outOfScope)
+            results.outOfScope.splice(offset?.outOfScope);
+        if (offset?.errors)
+            results.errors.splice(offset?.errors);
+
+        return results;
+    } catch (error) {
+        mainProc.error(`ZapService: ${service}\nError while getting zap ajax full results: ${error}`);
+    }
+}
+
+// END ZAP AJAX

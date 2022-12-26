@@ -1,9 +1,9 @@
 import {expressjwt} from "express-jwt";
-import {Request, Response, NextFunction} from "express";
+import {NextFunction, Request, Response} from "express";
 import {signJwt} from "./crypto";
 import {LOGIN_STATUS} from "../submodules/utility/status";
-import { ACCESS_TOKEN_MAX_AGE, TOKEN_TYPE } from "../submodules/utility/token";
-import { UserTokenData } from "../submodules/utility/user";
+import {ACCESS_TOKEN_MAX_AGE, TOKEN_TYPE} from "../submodules/utility/token";
+import {UserTokenData} from "../submodules/utility/user";
 
 if (!process.env.ZAP_OP_PRIVATE_KEY)
     throw "ZAP_OP_PRIVATE_KEY not found";
@@ -33,11 +33,11 @@ export function authenAccessMdw(req: JWTRequest, res: Response, next: NextFuncti
         return res.status(400).send(LOGIN_STATUS.TOKEN_NOT_FOUND);
 
     if (!req.accessToken) {
-        const newAccessToken = Object.assign({}, req.refreshToken, { type: TOKEN_TYPE.ACCESS });
+        const newAccessToken = Object.assign({}, req.refreshToken, {type: TOKEN_TYPE.ACCESS});
         delete newAccessToken.exp;
 
         req.accessToken = newAccessToken;
-        res.cookie(TOKEN_TYPE.ACCESS, signJwt(newAccessToken, ACCESS_TOKEN_MAX_AGE), { maxAge: ACCESS_TOKEN_MAX_AGE });
+        res.cookie(TOKEN_TYPE.ACCESS, signJwt(newAccessToken, ACCESS_TOKEN_MAX_AGE), {maxAge: ACCESS_TOKEN_MAX_AGE});
     }
     next();
 }

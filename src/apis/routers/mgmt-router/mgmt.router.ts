@@ -30,7 +30,7 @@ const postTargetSchema: JSONSchema7 = {
 };
 
 mgmtRouter.get("/targets", async (req: JWTRequest, res) => {
-    const targets = await targetModel.find({ "userId": req.accessToken!.userId });
+    const targets = await targetModel.find({"userId": req.accessToken!.userId});
     res.status(200).json(targets);
 });
 
