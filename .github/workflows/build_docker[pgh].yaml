@@ -1,0 +1,33 @@
+name: Build and Push Docker image with latest
+
+on:
+    workflow_dispatch:
+
+jobs:
+    build_docker:
+        name: Build and Push Docker image
+        runs-on: ubuntu-latest
+        steps:
+            -   name: Set up QEMU
+                uses: docker/setup-qemu-action@v2
+
+            -   name: Set up Docker Buildx
+                uses: docker/setup-buildx-action@v2
+
+            -   name: Checkout latest source
+                uses: actions/checkout@v3
+                with:
+                    submodules: recursive
+
+            -   name: Login to Dockerhub
+                uses: docker/login-action@v2
+                with:
+                    username: ${{ secrets.DOCKERHUB_USERNAME_PGH }}
+                    password: ${{ secrets.DOCKERHUB_PASSWORD_PGH }}
+
+            -   name: Build and Push
+                uses: docker/build-push-action@v3
+                with:
+                    platforms: linux/amd64,linux/arm64/v8
+                    push: true
+                    tags: ${{ secrets.DOCKERHUB_USERNAME_PGH }}/zap-op:${{ github.ref_name }}
