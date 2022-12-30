@@ -1,18 +1,12 @@
-name: Build and Push Docker image with latest source code
+name: Build and Push Docker image with latest
 
 on:
-    push:
-        branchs:
-            - main
     workflow_dispatch:
 
 jobs:
-    build_docker_image:
-        if: (github.event_name == 'workflow_dispatch') || !contains(github.event.head_commit.message, '[skip_build_docker_image]')
-
+    build_docker:
         name: Build and Push Docker image
         runs-on: ubuntu-latest
-
         steps:
             -   name: Set up QEMU
                 uses: docker/setup-qemu-action@v2
@@ -28,12 +22,12 @@ jobs:
             -   name: Login to Dockerhub
                 uses: docker/login-action@v2
                 with:
-                    username: ${{ secrets.DOCKERHUB_USERNAME }}
-                    password: ${{ secrets.DOCKERHUB_PASSWORD }}
+                    username: ${{ secrets.DOCKERHUB_USERNAME_NQT }}
+                    password: ${{ secrets.DOCKERHUB_PASSWORD_NQT }}
 
             -   name: Build and Push
                 uses: docker/build-push-action@v3
                 with:
                     platforms: linux/amd64,linux/arm64/v8
                     push: true
-                    tags: thanhqng1510/zap-op-backend:${{ github.ref_name }}
+                    tags: ${{ secrets.DOCKERHUB_USERNAME_NQT }}/zap-op-backend:${{ github.ref_name }}
