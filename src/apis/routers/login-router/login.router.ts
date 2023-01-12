@@ -3,8 +3,8 @@ import {isValidGoogleIDToken} from "../../../utils/validator";
 import {signJwt} from "../../../utils/crypto";
 import {userModel} from "../../../database/models/user.model";
 import {LOGIN_STATUS} from "../../../submodules/utility/status";
-import { ACCESS_TOKEN_MAX_AGE, REFRESH_TOKEN_MAX_AGE, TOKEN_TYPE } from "../../../submodules/utility/token";
-import { GgUserData } from "../../../submodules/utility/user";
+import {ACCESS_TOKEN_MAX_AGE, REFRESH_TOKEN_MAX_AGE, TOKEN_TYPE} from "../../../submodules/utility/token";
+import {GgUserData} from "../../../submodules/utility/user";
 import {mainProc} from "../../../utils/log";
 
 const loginRouter = express.Router();
@@ -55,8 +55,8 @@ loginRouter.post("/", async (req, res) => {
     const accessToken = signJwt({...userObj, userId, type: TOKEN_TYPE.ACCESS}, ACCESS_TOKEN_MAX_AGE);
     const refreshToken = signJwt({...userObj, userId, type: TOKEN_TYPE.REFRESH}, REFRESH_TOKEN_MAX_AGE);
     res.status(200)
-        .cookie(TOKEN_TYPE.ACCESS, accessToken, {maxAge: ACCESS_TOKEN_MAX_AGE})
-        .cookie(TOKEN_TYPE.REFRESH, refreshToken, {maxAge: REFRESH_TOKEN_MAX_AGE})
+        .cookie(TOKEN_TYPE.ACCESS, accessToken, {maxAge: ACCESS_TOKEN_MAX_AGE, domain: `.${process.env.CORS_ORIGIN}`})
+        .cookie(TOKEN_TYPE.REFRESH, refreshToken, {maxAge: REFRESH_TOKEN_MAX_AGE, domain: `.${process.env.CORS_ORIGIN}`})
         .send(LOGIN_STATUS.LOGIN_SUCCESS);
 });
 

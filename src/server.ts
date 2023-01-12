@@ -22,7 +22,7 @@ app.use(express.json());
 import cors from "cors";
 if (process.env.CORS_ORIGIN)
     app.use(cors({ 
-        origin: process.env.CORS_ORIGIN,
+        origin: `${process.env.PROTOCOL}//${process.env.CORS_ORIGIN}`,
         credentials:true,
     }));
 
