@@ -1,16 +1,18 @@
-/dist
+dist
 /logs
-/ZAP*
-/.vscode
+/ZAP_*
+.vscode
+.fleet
+.idea
 
 # dependencies
-/node_modules
+node_modules
 /.pnp
 .pnp.js
 
 # testing
 /coverage
-/*.http
+*.http
 
 # production
 /build
@@ -20,7 +22,6 @@
 
 # BEING DEVELOP
 .env
-*.http
 
 npm-debug.log*
 yarn-debug.log*

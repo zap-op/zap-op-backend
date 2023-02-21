@@ -1,6 +1,6 @@
 import crypto from "crypto";
 import jwt from "jsonwebtoken";
-import { UserTokenData } from "../submodules/utility/user";
+import {UserTokenData} from "../submodules/utility/user";
 
 /**
  * Generate a SHA1 hash by timestamp

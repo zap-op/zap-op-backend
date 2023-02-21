@@ -1,7 +1,7 @@
 import express from "express";
 import {isValidURL} from "../../../../utils/validator";
 import {SCAN_STATUS} from "../../../../submodules/utility/status";
-import {initSpider, spiderProgressStream, spiderResults} from "../../../../scan-services/zap-service/zap.service";
+import {spiderResults, spiderScan, spiderStatusStream} from "../../../../scan-services/zap-service/zap.service";
 import {serializeSSEEvent} from "../../../../utils/network";
 import {mainProc, userSession} from "../../../../utils/log";
 
@@ -20,20 +20,20 @@ trialRouter.get("/", async (req, res) => {
         return res.write(serializeSSEEvent("error", SCAN_STATUS.INVAVLID_URL));
 
     try {
-        const scanId = await initSpider(urlToScan, {
+        const scanId = await spiderScan(urlToScan, {
             maxChildren: 5,
             recurse: true,
             contextName: "",
             subtreeOnly: false
         });
         if (!scanId)
-            return res.write(serializeSSEEvent("error", SCAN_STATUS.ZAP_SPIDER_INITIALIZE_FAIL));
+            return res.write(serializeSSEEvent("error", SCAN_STATUS.ZAP_INITIALIZE_FAIL));
 
         res.write(serializeSSEEvent("id", {id: scanId}));
 
         const emitDistinct = req.query.emitDistinct === "true";
         const removeOnDone = req.query.removeOnDone === "true";
-        const writer = spiderProgressStream(scanId, emitDistinct, removeOnDone).subscribe({
+        const writer = spiderStatusStream(scanId, emitDistinct, removeOnDone).subscribe({
             next: status => res.write(serializeSSEEvent("status", status)),
             error: (err) => {
                 mainProc.error(`Error while polling ZAP spider results: ${err}`);

@@ -11,7 +11,7 @@ const connect = async function () {
     else {
         try {
             mongoose.set("strictQuery", false);
-            database = await mongoose.connect(process.env.MONGO_CONNECTION_STRING, { autoIndex: true });
+            database = await mongoose.connect(process.env.MONGO_CONNECTION_STRING, {autoIndex: true});
             database.connection.on("error", async () => {
                 mainProc.warn("Mongo connection error - retrying...");
                 await connect();

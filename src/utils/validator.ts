@@ -13,6 +13,7 @@ if (!process.env.GOOGLE_CLIENT_ID)
     throw "GOOGLE_CLIENT_ID not found";
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+
 export async function isValidGoogleIDToken(token: string) {
     const ticket = await client.verifyIdToken({
         idToken: token,

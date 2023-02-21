@@ -41,8 +41,7 @@ loginRouter.post("/", async (req, res) => {
 
             const newUser = new userModel(userObj);
             userId = (await newUser.save()).id;
-        }
-        else {
+        } else {
             if (userBySub.email !== userObj.email)
                 return res.status(500).send(LOGIN_STATUS.USER_ALREADY_LINKED);
             userId = userBySub.id;
@@ -56,7 +55,10 @@ loginRouter.post("/", async (req, res) => {
     const refreshToken = signJwt({...userObj, userId, type: TOKEN_TYPE.REFRESH}, REFRESH_TOKEN_MAX_AGE);
     res.status(200)
         .cookie(TOKEN_TYPE.ACCESS, accessToken, {maxAge: ACCESS_TOKEN_MAX_AGE, domain: `.${process.env.CORS_ORIGIN}`})
-        .cookie(TOKEN_TYPE.REFRESH, refreshToken, {maxAge: REFRESH_TOKEN_MAX_AGE, domain: `.${process.env.CORS_ORIGIN}`})
+        .cookie(TOKEN_TYPE.REFRESH, refreshToken, {
+            maxAge: REFRESH_TOKEN_MAX_AGE,
+            domain: `.${process.env.CORS_ORIGIN}`
+        })
         .send(LOGIN_STATUS.LOGIN_SUCCESS);
 });
 
