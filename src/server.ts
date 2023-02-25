@@ -30,7 +30,7 @@ app.use(express.json());
 
 if (process.env.PROTOCOL && process.env.CORS_ORIGIN)
     app.use(cors({
-        origin: `${process.env.PROTOCOL}//${process.env.CORS_ORIGIN}`,
+        origin: `${process.env.PROTOCOL}://${process.env.CORS_ORIGIN}`,
         credentials: true,
     }));
 
