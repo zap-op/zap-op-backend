@@ -40,7 +40,7 @@ mgmtRouter.post(
     async (req: JWTRequest, res) => {
         const body = req.body;
 
-        if (!isValidURL(body.target))
+        if (!(await isValidURL(body.target)))
             return res.status(400).send(MGMT_STATUS.TARGET_INVAVLID_URL);
 
         try {

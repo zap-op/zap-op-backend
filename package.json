@@ -27,6 +27,7 @@
         "mongoose": "^6.9.1",
         "mongoose-schema-jsonschema": "^2.0.2",
         "rxjs": "^7.6.0",
+        "url-exists-nodejs": "^0.2.4",
         "validator": "^13.7.0",
         "winston": "^3.8.2",
         "winston-daily-rotate-file": "^4.7.1",

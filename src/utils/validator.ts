@@ -1,12 +1,16 @@
 import validator from "validator";
+import urlExists from "url-exists-nodejs";
 import {OAuth2Client} from "google-auth-library";
 
-export function isValidURL(urlString: string) {
-    return validator.isURL(urlString, {
-        protocols: ["http", "https"],
-        require_protocol: true,
-        allow_underscores: true,
-    });
+export async function isValidURL(urlString: string) {
+    return !urlString.includes("localhost") &&
+        !urlString.includes("127.0.0.1") &&
+        validator.isURL(urlString, {
+            protocols: ["http", "https"],
+            require_protocol: true,
+            allow_underscores: true,
+        }) &&
+        await urlExists(urlString);
 }
 
 if (!process.env.GOOGLE_CLIENT_ID)

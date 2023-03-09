@@ -53,7 +53,7 @@ zapAjaxRouter.post("/", validator.validate({body: postZapAjaxSchema}),
     async (req: JWTRequest, res) => {
         const body = req.body;
 
-        if (!isValidURL(body.url))
+        if (!(await isValidURL(body.url)))
             return res.status(400).send(SCAN_STATUS.INVAVLID_URL);
 
         try {
