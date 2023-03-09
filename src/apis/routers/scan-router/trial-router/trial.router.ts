@@ -17,7 +17,7 @@ trialRouter.get("/", async (req, res) => {
     res.writeHead(200, headers);
 
     const urlToScan = req.query.url;
-    if (typeof urlToScan !== "string" || !isValidURL(urlToScan))
+    if (typeof urlToScan !== "string" || !(await isValidURL(urlToScan)))
         return res.write(serializeSSEEvent("error", SCAN_STATUS.INVAVLID_URL));
 
     try {
