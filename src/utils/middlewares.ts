@@ -9,6 +9,9 @@ if (!process.env.ZAP_OP_PRIVATE_KEY)
     throw "ZAP_OP_PRIVATE_KEY not found";
 
 export function parseAccessTokenMdw() {
+    if (process.env.NODE_ENV === "development")
+        return (req: JWTRequest, res: Response, next: NextFunction) => { next(); };
+
     return expressjwt({
         secret: process.env.ZAP_OP_PRIVATE_KEY!,
         algorithms: ["HS256"],
@@ -19,6 +22,9 @@ export function parseAccessTokenMdw() {
 }
 
 export function parseRefreshTokenMdw() {
+    if (process.env.NODE_ENV === "development")
+        return (req: JWTRequest, res: Response, next: NextFunction) => { next(); };
+
     return expressjwt({
         secret: process.env.ZAP_OP_PRIVATE_KEY!,
         algorithms: ["HS256"],
@@ -29,6 +35,9 @@ export function parseRefreshTokenMdw() {
 }
 
 export function authenAccessMdw(req: JWTRequest, res: Response, next: NextFunction) {
+    if (process.env.NODE_ENV === "development")
+        return next();
+
     if (!req.accessToken && !req.refreshToken)
         return res.status(400).send(LOGIN_STATUS.TOKEN_NOT_FOUND);
 
