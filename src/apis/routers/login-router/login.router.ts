@@ -1,5 +1,5 @@
 import express from "express";
-import { isValidGoogleIDToken } from "../../../utils/validator";
+import { isOnDevelopment, isOnProduction, isValidGoogleIDToken } from "../../../utils/validator";
 import { signJwt } from "../../../utils/crypto";
 import { userModel } from "../../../database/models/user.model";
 import { LOGIN_STATUS } from "../../../submodules/utility/status";
@@ -68,16 +68,23 @@ loginRouter.post("/", async (req, res) => {
 		},
 		REFRESH_TOKEN_MAX_AGE,
 	);
-	res.status(200)
-		.cookie(TOKEN_TYPE.ACCESS, accessToken, {
+
+	if (isOnProduction()) {
+		res.cookie(TOKEN_TYPE.ACCESS, accessToken, {
 			maxAge: ACCESS_TOKEN_MAX_AGE,
 			domain: `.${process.env.CORS_ORIGIN}`,
-		})
-		.cookie(TOKEN_TYPE.REFRESH, refreshToken, {
+		}).cookie(TOKEN_TYPE.REFRESH, refreshToken, {
 			maxAge: REFRESH_TOKEN_MAX_AGE,
 			domain: `.${process.env.CORS_ORIGIN}`,
-		})
-		.send(LOGIN_STATUS.LOGIN_SUCCESS);
+		});
+	} else if (isOnDevelopment()) {
+		res.cookie(TOKEN_TYPE.ACCESS, accessToken, {
+			maxAge: ACCESS_TOKEN_MAX_AGE,
+		}).cookie(TOKEN_TYPE.REFRESH, refreshToken, {
+			maxAge: REFRESH_TOKEN_MAX_AGE,
+		});
+	}
+	res.status(200).send(LOGIN_STATUS.LOGIN_SUCCESS);
 });
 
 export default loginRouter;
