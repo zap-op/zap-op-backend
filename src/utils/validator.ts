@@ -3,7 +3,6 @@ import urlExists from "url-exists-nodejs";
 import { OAuth2Client } from "google-auth-library";
 
 export function isOnProduction() {
-	console.log(process.env["NODE_ENV"]);
 	return process.env["NODE_ENV"] === "production";
 }
 
@@ -19,6 +18,7 @@ export async function isValidURL(urlString: string) {
 			protocols: ["http", "https"],
 			require_protocol: true,
 			allow_underscores: true,
+			allow_protocol_relative_urls: true,
 		}) &&
 		(await urlExists(urlString))
 	);
