@@ -39,12 +39,12 @@ loginRouter.post("/", async (req, res) => {
 			const userByEmail = await userModel.findOne({
 				email: userObj.email,
 			});
-			if (userByEmail) return res.status(500).send(LOGIN_STATUS.EMAIL_ALREADY_USED);
+			if (userByEmail) return res.status(400).send(LOGIN_STATUS.EMAIL_ALREADY_USED);
 
 			const newUser = new userModel(userObj);
 			userId = (await newUser.save()).id;
 		} else {
-			if (userBySub.email !== userObj.email) return res.status(500).send(LOGIN_STATUS.USER_ALREADY_LINKED);
+			if (userBySub.email !== userObj.email) return res.status(400).send(LOGIN_STATUS.USER_ALREADY_LINKED);
 			userId = userBySub.id;
 		}
 	} catch (error) {

@@ -57,62 +57,68 @@ zapSpiderRouter.post("/", validator.validate({body: postZapSpiderSchema}),
         if (!(await isValidURL(body.url)))
             return res.status(400).send(SCAN_STATUS.INVAVLID_URL);
 
-        try {
-            const scanSession = new zapSpiderScanSessionModel({
-                url: body.url,
-                userId: req.accessToken!.userId,
-                scanConfig: {
-                    maxChildren: body.scanConfig.maxChildren,
-                    recurse: body.scanConfig.recurse,
-                    contextName: body.scanConfig.contextName,
-                    subtreeOnly: body.scanConfig.subtreeOnly,
-                },
-            });
-            await scanSession.save();
-            return res.status(201).send({
-                scanSession: scanSession._id,
-                scanStatus: SCAN_STATUS.SESSION_INITIALIZE_SUCCEED,
-            });
-        } catch (error) {
+        const scanSession = new zapSpiderScanSessionModel({
+            url: body.url,
+            userId: req.accessToken!.userId,
+            scanConfig: {
+                maxChildren: body.scanConfig.maxChildren,
+                recurse: body.scanConfig.recurse,
+                contextName: body.scanConfig.contextName,
+                subtreeOnly: body.scanConfig.subtreeOnly,
+            },
+        });
+        await scanSession.save().catch(error => {
             mainProc.error(error);
-            res.status(500).send(SCAN_STATUS.SESSION_INITIALIZE_FAIL);
-        }
+            return res.status(500).send(SCAN_STATUS.SESSION_INITIALIZE_FAIL);
+        });
+
+        const scanId = await spiderScan(scanSession.url, scanSession.scanConfig).catch(error => {
+            mainProc.error(error);
+            return res.status(500).send(SCAN_STATUS.SESSION_INITIALIZE_FAIL);
+        });
+        if (!scanId)
+            return res.status(500).send(SCAN_STATUS.ZAP_INITIALIZE_FAIL);
+
+        return res.status(201).send({
+            scanSession: scanSession._id,
+            scanStatus: SCAN_STATUS.SESSION_INITIALIZE_SUCCEED,
+            scanId
+        });
     }
 );
 
 zapSpiderRouter.get("/", async (req: JWTRequest, res) => {
     const scanSession = req.query.scanSession;
     if (!scanSession || !isValidObjectId(scanSession))
-        return res.status(500).send(SCAN_STATUS.INVALID_SESSION);
+        return res.status(400).send(SCAN_STATUS.INVALID_SESSION);
+
+    const scanId = req.query.scanId as string;
+    if (!scanId || isNaN(parseInt(scanId)))
+        return res.status(400).send(SCAN_STATUS.INVALID_ID);
 
     const headers = {
         "Content-Type": "text/event-stream",
         "Connection": "keep-alive",
-        "Cache-Control": "no-cache",
+        "Cache-Control": "no-store",
         "X-Accel-Buffering": "no"
     };
     res.writeHead(200, headers);
 
     try {
-        const scanSessionDoc: any = await zapSpiderScanSessionModel
-            .findById(scanSession);
+        const scanSessionDoc = await zapSpiderScanSessionModel.findById(scanSession);
         if (!scanSessionDoc || scanSessionDoc.userId.toString() !== req.accessToken!.userId)
             return res.write(serializeSSEEvent("error", SCAN_STATUS.INVALID_SESSION));
-
-        const scanId = await spiderScan(scanSessionDoc.url, scanSessionDoc.scanConfig);
-        if (!scanId)
-            return res.write(serializeSSEEvent("error", SCAN_STATUS.ZAP_INITIALIZE_FAIL));
-
-        const emitDistinct = req.query.emitDistinct === "true";
-        const removeOnDone = req.query.removeOnDone === "true";
-        const writer = spiderStatusStream(scanId, emitDistinct, removeOnDone).subscribe({
-            next: status => res.write(serializeSSEEvent("status", status)),
-            error: err => res.write(serializeSSEEvent("error", err))
-        });
 
         req.on("close", () => {
             userSession.info(`ZAP spider session ${scanSessionDoc._id} disconnected`);
             writer.unsubscribe();
+        });
+
+        const emitDistinct = req.query.emitDistinct === "true";
+        const removeOnDone = req.query.removeOnDone === "true";
+        const writer = spiderStatusStream(parseInt(scanId), emitDistinct, removeOnDone).subscribe({
+            next: status => res.write(serializeSSEEvent("status", status)),
+            error: err => res.write(serializeSSEEvent("error", err))
         });
     } catch (error) {
         mainProc.error(`Error while polling ZAP spider results: ${error}`);

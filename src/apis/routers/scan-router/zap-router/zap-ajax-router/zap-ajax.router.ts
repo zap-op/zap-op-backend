@@ -83,12 +83,12 @@ const tempZapClients: Map<number, ZapClient> = new Map();
 zapAjaxRouter.get("/", async (req: JWTRequest, res) => {
     const scanSession = req.query.scanSession;
     if (!scanSession || !isValidObjectId(scanSession))
-        return res.status(500).send(SCAN_STATUS.INVALID_SESSION);
+        return res.status(400).send(SCAN_STATUS.INVALID_SESSION);
 
     const headers = {
         "Content-Type": "text/event-stream",
         "Connection": "keep-alive",
-        "Cache-Control": "no-cache",
+        "Cache-Control": "no-store",
         "X-Accel-Buffering": "no"
     };
     res.writeHead(200, headers);
