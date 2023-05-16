@@ -3,7 +3,7 @@ import {JSONSchema7} from "json-schema";
 import {Validator} from "express-json-validator-middleware";
 import {JWTRequest} from "../../../../../utils/middlewares";
 import {isValidURL} from "../../../../../utils/validator";
-import {SCAN_STATUS} from "../../../../../submodules/utility/status";
+import {SCAN_STATUS} from "../../../../../utils/types";
 import {zapSpiderScanSessionModel} from "../../../../../database/models/zap-spider.scan-session.model";
 import {mainProc, userSession} from "../../../../../utils/log";
 import {isValidObjectId} from "mongoose";

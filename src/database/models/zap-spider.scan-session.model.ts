@@ -1,9 +1,9 @@
 import database from "../database";
 import {scanSessionModel} from "./scan-session.model";
 import {SCAN_TYPE} from "./scan-session.type";
-import {TZapSpiderScanSession, TScanSession} from "../../submodules/utility/model";
+import {TZapSpiderScanSession} from "../../utils/types";
 
-export const zapSpiderScanSessionModel = scanSessionModel.discriminator<TZapSpiderScanSession & TScanSession>(
+export const zapSpiderScanSessionModel = scanSessionModel.discriminator<TZapSpiderScanSession>(
     SCAN_TYPE.ZAP.SPIDER,
     new database!.Schema<TZapSpiderScanSession>({
         scanConfig: {

@@ -14,7 +14,7 @@ import {
     timer
 } from "rxjs";
 import {mainProc} from "../../utils/log";
-import {TZapAjaxFullResultsConfig, TZapSpiderFullResultsConfig} from "../../submodules/utility/config";
+import {TZapAjaxFullResultsConfig, TZapSpiderFullResultsConfig} from "../../utils/types";
 
 const ZAP_POLL_DELAY = 5000;
 const ZAP_POLL_INTERVAL = 5000;

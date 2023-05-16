@@ -1,5 +1,5 @@
 import database from "../database";
-import {TUser} from "../../submodules/utility/model";
+import {TUser} from "../../utils/types";
 
 export const USER_COLLECTION =
     "users" + (process.env.NODE_ENV === "development" ? "_tests" : "");

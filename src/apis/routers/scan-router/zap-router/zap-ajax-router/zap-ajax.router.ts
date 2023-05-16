@@ -4,7 +4,7 @@ import {JSONSchema7} from "json-schema";
 // @ts-ignore
 import ZapClient from "zaproxy";
 import {isValidURL} from "../../../../../utils/validator";
-import {SCAN_STATUS} from "../../../../../submodules/utility/status";
+import {SCAN_STATUS} from "../../../../../utils/types";
 import {JWTRequest} from "../../../../../utils/middlewares";
 import {zapAjaxScanSessionModel} from "../../../../../database/models/zap-ajax.scan-session.model";
 import {mainProc, userSession} from "../../../../../utils/log";

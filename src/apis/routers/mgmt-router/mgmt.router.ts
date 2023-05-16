@@ -4,7 +4,7 @@ import {JSONSchema7} from "json-schema";
 import {targetModel, targetTrashModel} from "../../../database/models/target.model";
 import {isValidURL} from "../../../utils/validator";
 import {JWTRequest} from "../../../utils/middlewares";
-import {MGMT_STATUS} from "../../../submodules/utility/status";
+import {MGMT_STATUS} from "../../../utils/types";
 import {mainProc} from "../../../utils/log";
 
 const mgmtRouter = express.Router();
