@@ -1,9 +1,10 @@
 import { Schema } from "mongoose";
 import { database } from "../services/database.service";
+import { isOnProduction } from "../utils/validator";
 import { TScanSession, TZapAjaxScanSession, TZapSpiderScanSession } from "../utils/types";
 
 const SCAN_SESSION_COLLECTION =
-    "scan_sessions" + (process.env.NODE_ENV === "development" ? "_tests" : "");
+    "scan_sessions" + (!isOnProduction() ? "_tests" : "");
 
 export const SCAN_TYPE = {
     ZAP: {
@@ -17,7 +18,7 @@ const scanSessionModel = database!.model<TScanSession>(
     new database!.Schema<TScanSession>(
         {
             url: {
-                type: String,
+                type: Schema.Types.String,
                 required: true,
             },
             userId: {
@@ -34,47 +35,73 @@ const scanSessionModel = database!.model<TScanSession>(
     )
 );
 
-export const zapSpiderScanSessionModel = scanSessionModel.discriminator<TZapSpiderScanSession>(
+export const zapSpiderScanSessionModel = scanSessionModel.discriminator<TZapSpiderScanSession & TScanSession>(
     SCAN_TYPE.ZAP.SPIDER,
     new database!.Schema<TZapSpiderScanSession>({
         scanConfig: {
             maxChildren: {
-                type: Number,
+                type: Schema.Types.Number,
                 min: 0,
                 default: 1,
             },
             recurse: {
-                type: Boolean,
+                type: Schema.Types.Boolean,
                 default: true,
             },
             contextName: {
-                type: String,
+                type: Schema.Types.String,
                 default: "",
             },
             subtreeOnly: {
-                type: Boolean,
+                type: Schema.Types.Boolean,
                 default: false,
             },
         },
-    })
-);
+        fullResults: {
+            inScope: {
+                type: [Schema.Types.Mixed],
+                default: []
+            },
+            outOfScope: {
+                type: [Schema.Types.Mixed],
+                default: []
+            },
+            error: {
+                type: [Schema.Types.Mixed],
+                default: []
+            }
+        }
+    }));
 
-export const zapAjaxScanSessionModel = scanSessionModel.discriminator<TZapAjaxScanSession>(
+export const zapAjaxScanSessionModel = scanSessionModel.discriminator<TZapAjaxScanSession & TScanSession>(
     SCAN_TYPE.ZAP.AJAX,
     new database!.Schema<TZapAjaxScanSession>({
         scanConfig: {
             inScope: {
-                type: Boolean,
+                type: Schema.Types.Boolean,
                 default: false,
             },
             contextName: {
-                type: String,
+                type: Schema.Types.String,
                 default: "",
             },
             subtreeOnly: {
-                type: Boolean,
+                type: Schema.Types.Boolean,
                 default: false,
             },
         },
-    })
-);
+        fullResults: {
+            inScope: {
+                type: [Schema.Types.Mixed],
+                default: []
+            },
+            outOfScope: {
+                type: [Schema.Types.Mixed],
+                default: []
+            },
+            error: {
+                type: [Schema.Types.Mixed],
+                default: []
+            }
+        }
+    }));

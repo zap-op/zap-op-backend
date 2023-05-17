@@ -3,7 +3,7 @@ import { mainProc } from "./logging.service";
 
 export let database: mongoose.Mongoose | undefined;
 
-const connect = async function () {
+const connect = async function(): Promise<void> {
     if (!process.env.MONGO_CONNECTION_STRING)
         mainProc.error("MONGO_CONNECTION_STRING not found");
     else {

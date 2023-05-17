@@ -3,17 +3,13 @@ import { JSONSchema7 } from "json-schema";
 import { Validator } from "express-json-validator-middleware";
 import { JWTRequest } from "../../../../../utils/middlewares";
 import { isValidURL } from "../../../../../utils/validator";
-import { SCAN_STATUS } from "../../../../../utils/types";
-import { zapSpiderScanSessionModel } from "../../../../../models/scan-session.model";
 import { mainProc, userSession } from "../../../../../services/logging.service";
 import { isValidObjectId } from "mongoose";
 import { serializeSSEEvent } from "../../../../../utils/network";
-import {
-    spiderFullResults,
-    spiderResults,
-    spiderScan,
-    spiderStatusStream
-} from "../../../../../services/zapClient.service";
+import { SCAN_STATUS } from "../../../../../utils/types";
+import { zapSpiderScanSessionModel } from "../../../../../models/scan-session.model";
+import { spiderFullResults, spiderResults } from "../../../../../services/zapClient.service";
+import { spiderSharedStatusStream, spiderStartAndMonitor } from "../../../../../services/zapMonitor.service";
 
 export const zapSpiderRouter = express.Router();
 const validator = new Validator({});
@@ -54,7 +50,7 @@ zapSpiderRouter.post("/", validator.validate({body: postZapSpiderSchema}),
     async (req: JWTRequest, res) => {
         const body = req.body;
 
-        if (!(await isValidURL(body.url)))
+        if (typeof body.url !== "string" || !(await isValidURL(body.url)))
             return res.status(400).send(SCAN_STATUS.INVAVLID_URL);
 
         const scanSession = new zapSpiderScanSessionModel({
@@ -72,10 +68,15 @@ zapSpiderRouter.post("/", validator.validate({body: postZapSpiderSchema}),
             return res.status(500).send(SCAN_STATUS.SESSION_INITIALIZE_FAIL);
         });
 
-        const scanId = await spiderScan(scanSession.url, scanSession.scanConfig).catch(error => {
-            mainProc.error(error);
-            return res.status(500).send(SCAN_STATUS.SESSION_INITIALIZE_FAIL);
-        });
+        // emitDistinct and removeOnDone are default to true
+        const emitDistinct = req.query.emitDistinct !== "false";
+        const removeOnDone = req.query.removeOnDone !== "false";
+
+        const scanId = await spiderStartAndMonitor(scanSession.url, scanSession.scanConfig, emitDistinct, removeOnDone)
+            .catch((error: any) => {
+                mainProc.error(error);
+                return res.status(500).send(SCAN_STATUS.SESSION_INITIALIZE_FAIL);
+            });
         if (!scanId)
             return res.status(500).send(SCAN_STATUS.ZAP_INITIALIZE_FAIL);
 
@@ -91,8 +92,8 @@ zapSpiderRouter.get("/", async (req: JWTRequest, res) => {
     if (!scanSession || !isValidObjectId(scanSession))
         return res.status(400).send(SCAN_STATUS.INVALID_SESSION);
 
-    const scanId = req.query.scanId as string;
-    if (!scanId || isNaN(parseInt(scanId)))
+    const scanId = req.query.scanId;
+    if (typeof scanId !== "string" || isNaN(parseInt(scanId)))
         return res.status(400).send(SCAN_STATUS.INVALID_ID);
 
     const headers = {
@@ -108,16 +109,17 @@ zapSpiderRouter.get("/", async (req: JWTRequest, res) => {
         if (!scanSessionDoc || scanSessionDoc.userId.toString() !== req.accessToken!.userId)
             return res.write(serializeSSEEvent("error", SCAN_STATUS.INVALID_SESSION));
 
-        req.on("close", () => {
-            userSession.info(`ZAP spider session ${scanSessionDoc._id} disconnected`);
-            writer.unsubscribe();
-        });
+        const status$ = spiderSharedStatusStream(scanId);
+        if (!status$)
+            return res.write(serializeSSEEvent("error", SCAN_STATUS.INVALID_ID));
 
-        const emitDistinct = req.query.emitDistinct === "true";
-        const removeOnDone = req.query.removeOnDone === "true";
-        const writer = spiderStatusStream(parseInt(scanId), emitDistinct, removeOnDone).subscribe({
+        const writer = status$.subscribe({
             next: status => res.write(serializeSSEEvent("status", status)),
             error: err => res.write(serializeSSEEvent("error", err))
+        });
+
+        req.on("close", () => {
+            writer.unsubscribe();
         });
     } catch (error) {
         mainProc.error(`Error while polling ZAP spider results: ${error}`);
@@ -126,15 +128,15 @@ zapSpiderRouter.get("/", async (req: JWTRequest, res) => {
 });
 
 zapSpiderRouter.get("/results", async (req, res) => {
-    const scanId = req.query.id as string;
-    if (!scanId || isNaN(parseInt(scanId)))
+    const scanId = req.query.id;
+    if (typeof scanId !== "string" || isNaN(parseInt(scanId)))
         return res.status(400).send(SCAN_STATUS.INVALID_ID);
 
-    const offset = req.query.offet as string ?? 0;
-    if (isNaN(parseInt(offset)))
+    const offset = req.query.offet ?? "0";
+    if (typeof offset !== "string" || isNaN(parseInt(offset)))
         return res.status(400).send(SCAN_STATUS.INVALID_RESULT_OFFSET);
 
-    const results = await spiderResults(parseInt(scanId), parseInt(offset));
+    const results = await spiderResults(scanId, parseInt(offset));
     if (!results)
         return res.status(400).send(SCAN_STATUS.INVALID_ID);
 
@@ -142,23 +144,23 @@ zapSpiderRouter.get("/results", async (req, res) => {
 });
 
 zapSpiderRouter.get("/fullResults", async (req, res) => {
-    const scanId = req.query.id as string;
-    if (!scanId || isNaN(parseInt(scanId)))
+    const scanId = req.query.id;
+    if (typeof scanId !== "string" || isNaN(parseInt(scanId)))
         return res.status(400).send(SCAN_STATUS.INVALID_ID);
 
-    const urlsInScopeOffset = req.query.urlsInScopeOffset as string ?? 0;
-    if (isNaN(parseInt(urlsInScopeOffset)))
+    const urlsInScopeOffset = req.query.urlsInScopeOffset ?? "0";
+    if (typeof urlsInScopeOffset !== "string" || isNaN(parseInt(urlsInScopeOffset)))
         return res.status(400).send(SCAN_STATUS.INVALID_RESULT_OFFSET);
 
-    const urlsOutOfScopeOffset = req.query.urlsOutOfScopeOffset as string ?? 0;
-    if (isNaN(parseInt(urlsOutOfScopeOffset)))
+    const urlsOutOfScopeOffset = req.query.urlsOutOfScopeOffset ?? "0";
+    if (typeof urlsOutOfScopeOffset !== "string" || isNaN(parseInt(urlsOutOfScopeOffset)))
         return res.status(400).send(SCAN_STATUS.INVALID_RESULT_OFFSET);
 
-    const urlsIoErrorOffset = req.query.urlsIoErrorOffset as string ?? 0;
-    if (isNaN(parseInt(urlsIoErrorOffset)))
+    const urlsIoErrorOffset = req.query.urlsIoErrorOffset ?? "0";
+    if (typeof urlsIoErrorOffset !== "string" || isNaN(parseInt(urlsIoErrorOffset)))
         return res.status(400).send(SCAN_STATUS.INVALID_RESULT_OFFSET);
 
-    const results = await spiderFullResults(parseInt(scanId), {
+    const results = await spiderFullResults(scanId, {
         urlsInScopeOffset: parseInt(urlsInScopeOffset),
         urlsOutOfScopeOffset: parseInt(urlsOutOfScopeOffset),
         urlsIoErrorOffset: parseInt(urlsIoErrorOffset)

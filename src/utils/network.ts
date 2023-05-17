@@ -1,4 +1,4 @@
-export function serializeSSEEvent(event: string, data: any) {
+export function serializeSSEEvent(eventName: string, data: any): string {
     const jsonString = JSON.stringify(data);
-    return `event: ${event}\ndata: ${jsonString}\n\n`;
+    return `event: ${eventName}\ndata: ${jsonString}\n\n`;
 }

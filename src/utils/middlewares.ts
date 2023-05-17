@@ -37,6 +37,7 @@ export function authenAccessMdw(req: JWTRequest, res: Response, next: NextFuncti
         req.accessToken = newAccessToken;
         res.cookie(TOKEN_TYPE.ACCESS, signJwt(newAccessToken, ACCESS_TOKEN_MAX_AGE), {maxAge: ACCESS_TOKEN_MAX_AGE});
     }
+    
     next();
 }
 
