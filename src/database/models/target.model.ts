@@ -1,6 +1,6 @@
 import database from "../database";
 import {Schema} from "mongoose";
-import {TTarget} from "../../utils/types";
+import {TTargetModel} from "../../utils/types";
 
 export const TARGET_COLLECTION =
     "targets" + (process.env.NODE_ENV === "development" ? "_tests" : "");
@@ -8,14 +8,10 @@ export const TARGET_COLLECTION =
 export const TARGET_TRASH_COLLECTION =
     "trashed_targets" + (process.env.NODE_ENV === "development" ? "_tests" : "");
 
-const targetSchema = new database!.Schema<TTarget>(
+const targetSchema = new database!.Schema<TTargetModel>(
     {
         userId: {
             type: Schema.Types.ObjectId,
-            required: true
-        },
-        name: {
-            type: String,
             required: true
         },
         target: {
@@ -33,6 +29,6 @@ const targetSchema = new database!.Schema<TTarget>(
         },
     }).index({userId: 1, name: 1}, {unique: true});
 
-export const targetModel = database!.model<TTarget>(TARGET_COLLECTION, targetSchema);
+export const targetModel = database!.model<TTargetModel>(TARGET_COLLECTION, targetSchema);
 
-export const targetTrashModel = database!.model<TTarget>(TARGET_TRASH_COLLECTION, targetSchema);
+export const targetTrashModel = database!.model<TTargetModel>(TARGET_TRASH_COLLECTION, targetSchema);

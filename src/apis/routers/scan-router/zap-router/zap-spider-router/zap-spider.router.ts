@@ -81,7 +81,6 @@ zapSpiderRouter.post("/", validator.validate({body: postZapSpiderSchema}),
 
         return res.status(201).send({
             scanSession: scanSession._id,
-            scanStatus: SCAN_STATUS.SESSION_INITIALIZE_SUCCEED,
             scanId
         });
     }
@@ -147,22 +146,22 @@ zapSpiderRouter.get("/fullResults", async (req, res) => {
     if (!scanId || isNaN(parseInt(scanId)))
         return res.status(400).send(SCAN_STATUS.INVALID_ID);
 
-    const urlsInScopeOffset = req.query.urlsInScope as string ?? 0;
+    const urlsInScopeOffset = req.query.urlsInScopeOffset as string ?? 0;
     if (isNaN(parseInt(urlsInScopeOffset)))
         return res.status(400).send(SCAN_STATUS.INVALID_RESULT_OFFSET);
 
-    const urlsOutOfScopeOffset = req.query.urlsOutOfScope as string ?? 0;
+    const urlsOutOfScopeOffset = req.query.urlsOutOfScopeOffset as string ?? 0;
     if (isNaN(parseInt(urlsOutOfScopeOffset)))
         return res.status(400).send(SCAN_STATUS.INVALID_RESULT_OFFSET);
 
-    const urlsIoErrorOffset = req.query.urlsIoError as string ?? 0;
+    const urlsIoErrorOffset = req.query.urlsIoErrorOffset as string ?? 0;
     if (isNaN(parseInt(urlsIoErrorOffset)))
         return res.status(400).send(SCAN_STATUS.INVALID_RESULT_OFFSET);
 
     const results = await spiderFullResults(parseInt(scanId), {
-        urlsInScope: parseInt(urlsInScopeOffset),
-        urlsOutOfScope: parseInt(urlsOutOfScopeOffset),
-        urlsIoError: parseInt(urlsIoErrorOffset)
+        urlsInScopeOffset: parseInt(urlsInScopeOffset),
+        urlsOutOfScopeOffset: parseInt(urlsOutOfScopeOffset),
+        urlsIoErrorOffset: parseInt(urlsIoErrorOffset)
     });
     if (!results)
         return res.status(400).send(SCAN_STATUS.INVALID_ID);

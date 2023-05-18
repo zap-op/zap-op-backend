@@ -14,7 +14,7 @@ import {
     timer
 } from "rxjs";
 import {mainProc} from "../../utils/log";
-import {TZapAjaxFullResultsConfig, TZapSpiderFullResultsConfig} from "../../utils/types";
+import {TZapAjaxFullResultsConfig, TZapSpiderFullResultsParams} from "../../utils/types";
 
 const ZAP_POLL_DELAY = 5000;
 const ZAP_POLL_INTERVAL = 5000;
@@ -94,16 +94,16 @@ export async function spiderResults(scanId: number, offset?: number) {
     return offset ? results.slice(offset) : results;
 }
 
-export async function spiderFullResults(scanId: number, offset?: TZapSpiderFullResultsConfig) {
+export async function spiderFullResults(scanId: number, offset?: TZapSpiderFullResultsParams) {
     try {
         const results = await zapServiceShared.spider.fullResults(scanId);
 
-        if (offset?.urlsInScope)
-            results.urlsInScope.splice(offset?.urlsInScope);
-        if (offset?.urlsOutOfScope)
-            results.urlsOutOfScope.splice(offset?.urlsOutOfScope);
-        if (offset?.urlsIoError)
-            results.urlsIoError.splice(offset?.urlsIoError);
+        if (offset?.urlsInScopeOffset)
+            results.urlsInScope.splice(offset?.urlsInScopeOffset);
+        if (offset?.urlsOutOfScopeOffset)
+            results.urlsOutOfScope.splice(offset?.urlsOutOfScopeOffset);
+        if (offset?.urlsIoErrorOffset)
+            results.urlsIoError.splice(offset?.urlsIoErrorOffset);
 
         return results;
     } catch (err) {
