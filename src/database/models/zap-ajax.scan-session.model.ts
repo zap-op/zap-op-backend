@@ -1,9 +1,9 @@
 import database from "../database";
 import {scanSessionModel} from "./scan-session.model";
 import {SCAN_TYPE} from "./scan-session.type";
-import {TZapAjaxScanSession, TScanSession} from "../../submodules/utility/model";
+import {TZapAjaxScanSession} from "../../utils/types";
 
-export const zapAjaxScanSessionModel = scanSessionModel.discriminator<TZapAjaxScanSession & TScanSession>(
+export const zapAjaxScanSessionModel = scanSessionModel.discriminator<TZapAjaxScanSession>(
     SCAN_TYPE.ZAP.AJAX,
     new database!.Schema<TZapAjaxScanSession>({
         scanConfig: {

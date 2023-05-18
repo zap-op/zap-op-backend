@@ -2,9 +2,7 @@ import express from "express";
 import { isOnDevelopment, isOnProduction, isValidGoogleIDToken } from "../../../utils/validator";
 import { signJwt } from "../../../utils/crypto";
 import { userModel } from "../../../database/models/user.model";
-import { LOGIN_STATUS } from "../../../submodules/utility/status";
-import { ACCESS_TOKEN_MAX_AGE, REFRESH_TOKEN_MAX_AGE, TOKEN_TYPE } from "../../../submodules/utility/token";
-import { GgUserData } from "../../../submodules/utility/user";
+import { LOGIN_STATUS, ACCESS_TOKEN_MAX_AGE, REFRESH_TOKEN_MAX_AGE, TOKEN_TYPE, GgUserData } from "../../../utils/types";
 import { mainProc } from "../../../utils/log";
 
 const loginRouter = express.Router();

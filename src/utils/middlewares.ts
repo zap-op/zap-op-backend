@@ -1,9 +1,7 @@
-import {expressjwt} from "express-jwt";
-import {NextFunction, Request, Response} from "express";
-import {signJwt} from "./crypto";
-import {LOGIN_STATUS} from "../submodules/utility/status";
-import {ACCESS_TOKEN_MAX_AGE, TOKEN_TYPE} from "../submodules/utility/token";
-import {UserTokenData} from "../submodules/utility/user";
+import { expressjwt } from "express-jwt";
+import { NextFunction, Request, Response } from "express";
+import { signJwt } from "./crypto";
+import { UserTokenData, ACCESS_TOKEN_MAX_AGE, TOKEN_TYPE, LOGIN_STATUS } from "./types";
 
 if (!process.env.ZAP_OP_PRIVATE_KEY)
     throw "ZAP_OP_PRIVATE_KEY not found";

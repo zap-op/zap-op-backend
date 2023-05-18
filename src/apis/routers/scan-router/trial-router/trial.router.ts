@@ -1,6 +1,6 @@
 import express from "express";
 import {isValidURL} from "../../../../utils/validator";
-import {SCAN_STATUS} from "../../../../submodules/utility/status";
+import {SCAN_STATUS} from "../../../../utils/types";
 import {spiderResults, spiderScan, spiderStatusStream} from "../../../../scan-services/zap-service/zap.service";
 import {serializeSSEEvent} from "../../../../utils/network";
 import {mainProc, userSession} from "../../../../utils/log";
