@@ -1,6 +1,6 @@
 import {Schema} from "mongoose";
 import database from "../database";
-import {TScanSession} from "../../submodules/utility/model";
+import {TScanSession} from "../../utils/types";
 
 export const SCAN_SESSION_COLLECTION =
     "scan_sessions" + (process.env.NODE_ENV === "development" ? "_tests" : "");
