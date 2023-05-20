@@ -1,11 +1,11 @@
-import loginRouter from "./routers/login-router/login.router";
-import {scanRouter} from "./routers/scan-router/scan.router";
-import {mgmtRouter} from "./routers/mgmt-router/mgmt.router";
-import {Express} from "express-serve-static-core";
-import {authenAccessMdw, parseAccessTokenMdw, parseRefreshTokenMdw} from "../utils/middlewares";
+import { initScanRouter } from "./routers/scan-router/scan.router";
+import { initMgmtRouter } from "./routers/mgmt-router/mgmt.router";
+import { Express } from "express-serve-static-core";
+import { initLoginRouter } from "./routers/login-router/login.router";
+import { keycloak } from "../server";
 
 export function initRoutes(app: Express) {
-    app.use("/login", loginRouter);
-    app.use("/scan", scanRouter);
-    app.use("/management", parseAccessTokenMdw(), parseRefreshTokenMdw(), authenAccessMdw, mgmtRouter);
+    app.use("/login", keycloak.protect(), initLoginRouter());
+    app.use("/scan", initScanRouter());
+    app.use("/management", keycloak.protect(), initMgmtRouter());
 }

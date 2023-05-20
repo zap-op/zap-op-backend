@@ -4,6 +4,8 @@
 **/build
 **/.vscode
 
+**/keycloak.json
+
 **/node_modules
 **/*.http
 **/.env

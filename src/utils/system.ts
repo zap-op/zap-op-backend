@@ -1,6 +1,6 @@
-import {fileURLToPath} from "url";
-import {dirname} from "path";
-import {endAllLoggers, mainProc} from "./log";
+import { fileURLToPath } from "url";
+import { dirname } from "path";
+import { endAllLoggers, mainProc } from "../services/logging.service";
 
 export function setupProcessExitHooks() {
     // Only works when there is no task running
