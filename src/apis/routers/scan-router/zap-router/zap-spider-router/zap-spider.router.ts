@@ -1,19 +1,15 @@
 import express from "express";
-import { JSONSchema7 } from "json-schema";
-import { Validator } from "express-json-validator-middleware";
-import { isValidURL } from "../../../../../utils/validator";
-import { mainProc, userSession } from "../../../../../services/logging.service";
-import { isValidObjectId } from "mongoose";
-import { serializeSSEEvent } from "../../../../../utils/network";
-import {
-    spiderFullResults,
-    spiderResults,
-    spiderScan,
-    spiderStatusStream
-} from "../../../../../utils/zapClient";
-import { ProtectedRequest } from "../../../../../submodules/utility/auth";
-import { SCAN_STATUS } from "../../../../../submodules/utility/status";
-import { zapSpiderScanSessionModel } from "../../../../../models/scan-session.model";
+import {JSONSchema7} from "json-schema";
+import {Validator} from "express-json-validator-middleware";
+import {isValidURL} from "../../../../../utils/validator";
+import {mainProc, userSession} from "../../../../../services/logging.service";
+import {isValidObjectId} from "mongoose";
+import {serializeSSEEvent} from "../../../../../utils/network";
+import {spiderFullResults, spiderResults, spiderStatusStream,} from "../../../../../utils/zapClient";
+import {ProtectedRequest} from "../../../../../submodules/utility/auth";
+import {SCAN_STATUS} from "../../../../../submodules/utility/status";
+import {zapSpiderScanSessionModel} from "../../../../../models/scan-session.model";
+import {spiderStartNewScan} from "../../../../../services/scanner.service";
 
 export function initZapSpiderRouter() {
     const zapSpiderRouter = express.Router();
@@ -66,6 +62,8 @@ export function initZapSpiderRouter() {
                     recurse: body.scanConfig.recurse,
                     contextName: body.scanConfig.contextName,
                     subtreeOnly: body.scanConfig.subtreeOnly,
+                    emitDistinct: body.scanConfig.emitDistinct,
+                    removeOnDone: body.scanConfig.removeOnDone
                 },
             });
             await scanSession.save().catch((error: any) => {
@@ -73,7 +71,7 @@ export function initZapSpiderRouter() {
                 return res.status(500).send(SCAN_STATUS.SESSION_INITIALIZE_FAIL);
             });
 
-            const scanId = await spiderScan(scanSession.url, scanSession.scanConfig).catch(error => {
+            const scanId = await spiderStartNewScan(scanSession.url, scanSession.scanConfig).catch(error => {
                 mainProc.error(error);
                 return res.status(500).send(SCAN_STATUS.SESSION_INITIALIZE_FAIL);
             });
@@ -114,9 +112,11 @@ export function initZapSpiderRouter() {
                 writer.unsubscribe();
             });
 
-            const emitDistinct = req.query.emitDistinct === "true";
-            const removeOnDone = req.query.removeOnDone === "true";
-            const writer = spiderStatusStream(parseInt(scanId), emitDistinct, removeOnDone).subscribe({
+            const status$ = spiderStatusStream(parseInt(scanId));
+            if (status$ === undefined) {
+                return res.write(serializeSSEEvent("error", SCAN_STATUS.INVALID_ID));
+            }
+            const writer = status$.subscribe({
                 next: status => res.write(serializeSSEEvent("status", status)),
                 error: err => res.write(serializeSSEEvent("error", err))
             });
