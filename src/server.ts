@@ -1,7 +1,6 @@
 import "dotenv/config";
 import { httpRequest, mainProc } from "./services/logging.service";
 import { setupProcessExitHooks } from "./utils/system";
-import { startSharedZapProcess } from "./utils/zapProc";
 import express from "express";
 import cors from "cors";
 import { initRoutes } from "./apis/route";
@@ -13,12 +12,13 @@ import MongoStore from "connect-mongo";
 import Keycloak from "keycloak-connect";
 import { initZapSharedClient } from "./utils/zapClient";
 import { isOnProduction } from "./utils/validator";
+import { startZapProcess, ZAP_SESSION_TYPES } from "./utils/zapProc";
 
 mainProc.info("Setup process exit hooks");
 setupProcessExitHooks();
 
 mainProc.info("Starting ZAP process");
-const zapPort = await startSharedZapProcess();
+const zapPort = await startZapProcess(ZAP_SESSION_TYPES.SHARED);
 initZapSharedClient(zapPort);
 mainProc.info(`ZAP started and listening on port ${zapPort}`);
 
@@ -54,9 +54,14 @@ export const keycloak = new Keycloak({ store: sessionStore });
 app.use(keycloak.middleware());
 mainProc.info("Keycloak integrated");
 
+app.use((req, res, next) => {
+    httpRequest.info(`${req.ip} | ${req.method} | ${req.originalUrl}`);
+    next();
+});
+
 if (!isOnProduction())
     app.use((req, res, next) => {
-        httpRequest.info(`${req.ip} | ${req.method} | ${req.originalUrl}`);
+        mainProc.info(`${req.ip} | ${req.method} | ${req.originalUrl}`);
         next();
     });
 

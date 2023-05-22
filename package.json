@@ -7,7 +7,7 @@
     "scripts": {
         "build": "npx tsc",
         "start": "npm run build && cross-env NODE_ENV=production node --es-module-specifier-resolution=node dist/server.js",
-        "dev": "concurrently \"npx tsc --watch\" \"cross-env NODE_ENV=development nodemon -q --es-module-specifier-resolution=node dist/server.js\""
+        "dev": "npm run build && cross-env NODE_ENV=development node --es-module-specifier-resolution=node dist/server.js"
     },
     "author": "Huy Pham",
     "license": "ISC",
@@ -38,10 +38,7 @@
         "@types/json-schema": "^7.0.11",
         "@types/node": "^20.2.1",
         "@types/validator": "^13.7.17",
-        "concurrently": "^8.0.1",
         "dotenv": "^16.0.3",
-        "nodemon": "^2.0.22",
-        "ts-node": "^10.9.1",
         "typescript": "^5.0.4"
     }
 }

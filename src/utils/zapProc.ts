@@ -69,7 +69,3 @@ export function startZapProcess(type: ZAP_SESSION_TYPES, port?: number, relSessi
         });
     })
 }
-
-export function startSharedZapProcess() {
-    return startZapProcess(ZAP_SESSION_TYPES.SHARED);
-}

@@ -15,14 +15,13 @@ import {
 } from "rxjs";
 import { mainProc } from "../services/logging.service";
 import { TZapAjaxFullResultsConfig, TZapSpiderFullResultsParams } from "../submodules/utility/api";
-import {startZapProcess, ZAP_SESSION_TYPES} from "./zapProc";
+import { startZapProcess, ZAP_SESSION_TYPES } from "./zapProc";
 
 const ZAP_POLL_DELAY = 5000;
 const ZAP_POLL_INTERVAL = 5000;
 const ZAP_POLL_MAX_RETRY = 5;
 
 let spiderZapServiceShared: ZapClient;
-const ajaxZapServices: Map<number, ZapClient> = new Map();
 
 export function initZapClient(port: number): ZapClient {
     return new ZapClient({
@@ -85,13 +84,10 @@ export function spiderStatusStream(scanId: number, emitDistinct?: boolean, remov
 
 export async function spiderResults(scanId: number, offset?: number) {
     const results: string[] = await spiderZapServiceShared.spider.results(scanId)
-        .then((response: {
-            results: string[]
-        }) => {
-            return response.results;
-        })
+        .then((response: { results: string[] }) => response.results)
         .catch((error: any) => {
             mainProc.error(`Error while getting zap spider results: ${error}`);
+            return null;
         });
     return offset ? results.slice(offset) : results;
 }
@@ -115,6 +111,8 @@ export async function spiderFullResults(scanId: number, offset?: TZapSpiderFullR
 // END ZAP SPIDER
 
 // BEGIN ZAP AJAX
+const ajaxZapServices: Map<number, ZapClient> = new Map();
+
 export async function ajaxScan(url: string, config: any) {
     const client = initZapClient(await startZapProcess(ZAP_SESSION_TYPES.TEMP));
     const clientId = Math.floor(Math.random() * 1000000);
