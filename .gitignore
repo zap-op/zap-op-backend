@@ -5,6 +5,8 @@ dist
 .fleet
 .idea
 
+keycloak.json
+
 # dependencies
 node_modules
 /.pnp

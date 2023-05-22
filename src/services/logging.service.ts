@@ -1,7 +1,7 @@
 import winston from "winston";
 import "winston-daily-rotate-file";
 import path from "path";
-import {dirName} from "./system";
+import { dirName } from "../utils/system";
 import * as Transport from "winston-transport";
 
 const LOG_DIR = path.join(dirName(import.meta), "..", "..", "logs");
@@ -100,8 +100,8 @@ export function registerCustomLogger(logType: string, transportsOpt: Transport[]
 }
 
 export function endCustomLogger(logger: winston.Logger) {
-    logger.end();
-    customRegisteredLogger.splice(customRegisteredLogger.indexOf(logger), 1);
+    if (customRegisteredLogger.splice(customRegisteredLogger.indexOf(logger), 1).length > 0)
+        logger.end();
 }
 
 export function endAllLoggers() {

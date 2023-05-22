@@ -1,11 +1,13 @@
 import express from "express";
-import {trialRouter} from "./trial-router/trial.router";
-import {zapRouter} from "./zap-router/zap.router";
-import {authenAccessMdw, parseAccessTokenMdw, parseRefreshTokenMdw} from "../../../utils/middlewares";
+import { initTrialRouter } from "./trial-router/trial.router";
+import { initZapRouter } from "./zap-router/zap.router";
+import { keycloak } from "../../../server";
 
-const scanRouter = express.Router();
+export function initScanRouter() {
+    const scanRouter = express.Router();
 
-scanRouter.use("/zap", parseAccessTokenMdw(), parseRefreshTokenMdw(), authenAccessMdw, zapRouter);
-scanRouter.use("/trial", trialRouter);
+    scanRouter.use("/trial", initTrialRouter());
+    scanRouter.use("/zap", keycloak.protect(), initZapRouter());
 
-export {scanRouter};
+    return scanRouter;
+}

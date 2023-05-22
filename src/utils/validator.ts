@@ -1,13 +1,10 @@
 import validator from "validator";
 import urlExists from "url-exists-nodejs";
-import { OAuth2Client } from "google-auth-library";
+import * as jwt from "jsonwebtoken";
+import { UserTokenData } from "../submodules/utility/auth";
 
 export function isOnProduction() {
-	return process.env["NODE_ENV"] === "production";
-}
-
-export function isOnDevelopment() {
-	return process.env["NODE_ENV"] === "development";
+	return process.env["NODE_ENV"] === "production" || process.env["NODE_ENV"] === "prod";
 }
 
 export async function isValidURL(urlString: string) {
@@ -20,20 +17,22 @@ export async function isValidURL(urlString: string) {
 			allow_underscores: true,
 			allow_protocol_relative_urls: true,
 		}) &&
-		(await urlExists(urlString))
+		await urlExists(urlString)
 	);
 }
 
-if (!process.env.GOOGLE_CLIENT_ID) throw "GOOGLE_CLIENT_ID not found";
+export function getUserDataFromAccessToken(jwtAccessToken: string) {
+	const payload = jwt.decode(jwtAccessToken);
+	if (!payload || typeof payload === 'string')
+		return null;
 
-const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+	if (!payload.email || !payload.email_verified || !payload.preferred_username)
+		return null;
 
-export async function isValidGoogleIDToken(token: string) {
-	const ticket = await client.verifyIdToken({
-		idToken: token,
-		audience: process.env.GOOGLE_CLIENT_ID,
-	});
-	const payload = ticket.getPayload();
-	if (!payload) throw "No payload";
-	return payload;
+	return {
+		verifiedEmail: payload.email,
+		username: payload.preferred_username,
+		givenName: payload.given_name,
+		familyName: payload.family_name
+	} as UserTokenData;
 }

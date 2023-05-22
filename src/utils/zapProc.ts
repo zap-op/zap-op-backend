@@ -1,17 +1,21 @@
-import {spawn} from "child_process";
+import { spawn } from "child_process";
 import path from "path";
-import {dirName} from "./system";
+import { dirName } from "./system";
 import os from "os";
-import {mainProc, registerCustomLogger, sharedFileTransportOpt, zapProc} from "./log";
+import { endCustomLogger, mainProc, registerCustomLogger, sharedFileTransportOpt, zapProc } from "../services/logging.service";
 import winston from "winston";
+import crypto from "crypto";
 
 if (!process.env.ZAP_APIKEY)
     throw "ZAP_APIKEY not found";
 
+if (os.platform() === "win32")
+    throw "win32 not supported";
+
 const ZAP_ROOT = path.join(dirName(import.meta), "..", "..", "ZAP_2.12.0");
-const ZAP_EXE = path.join(ZAP_ROOT, os.platform() === "win32" ? "zap.bat" : "zap.sh");
-const ZAP_OPTS = ["-daemon", "-addoninstallall", "-addonupdate", "-config", `api.key=${process.env.ZAP_APIKEY}`];
 const ZAP_SESSIONS_DIR = path.join(ZAP_ROOT, "zap-session");
+const ZAP_EXE = path.join(ZAP_ROOT, "zap.sh");
+const ZAP_OPTS = ["-daemon", "-addoninstallall", "-addonupdate", "-config", `api.key=${process.env.ZAP_APIKEY}`];
 
 export enum ZAP_SESSION_TYPES {
     SHARED = "shared",
@@ -24,8 +28,16 @@ export function startZapProcess(type: ZAP_SESSION_TYPES, port?: number, relSessi
     if (port)
         zapOptions.push("-port", port.toString());
 
-    const loggerToUse = type === ZAP_SESSION_TYPES.SHARED ? zapProc : logger ??
-        registerCustomLogger("zapTemp", [sharedFileTransportOpt("zapTemp")]);
+    let loggerToUse: winston.Logger;
+    if (type === ZAP_SESSION_TYPES.SHARED)
+        loggerToUse = zapProc;
+    else {
+        if (!logger) {
+            const loggerId = `zapTemp-${crypto.randomUUID()}`;
+            logger = registerCustomLogger(loggerId, [sharedFileTransportOpt(loggerId)]);
+        }
+        loggerToUse = logger;
+    }
 
     const proc = spawn(ZAP_EXE, zapOptions);
 
@@ -45,12 +57,14 @@ export function startZapProcess(type: ZAP_SESSION_TYPES, port?: number, relSessi
         proc.on("close", (code) => {
             const msg = `ZAP ${type} process exited with code ${code}`;
             mainProc.info(msg);
+            endCustomLogger(loggerToUse);
             reject(msg);
         });
 
         proc.on("error", (err) => {
             const msg = `ZAP ${type} process encounter error: ${err}`;
             mainProc.error(msg);
+            endCustomLogger(loggerToUse);
             reject(msg);
         });
     })
