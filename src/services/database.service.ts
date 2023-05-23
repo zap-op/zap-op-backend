@@ -1,9 +1,7 @@
 import mongoose from "mongoose";
-// @ts-ignore
-import addJsonSchema from "mongoose-schema-jsonschema";
-import {mainProc} from "../utils/log";
+import { mainProc } from "./logging.service";
 
-let database: mongoose.Mongoose | undefined;
+export let database: mongoose.Mongoose | undefined;
 
 const connect = async function () {
     if (!process.env.MONGO_CONNECTION_STRING)
@@ -22,6 +20,3 @@ const connect = async function () {
     }
 };
 await connect();
-addJsonSchema(database);
-
-export default database;

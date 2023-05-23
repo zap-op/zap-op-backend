@@ -1,8 +1,8 @@
-import {spawn} from "child_process";
+import { spawn } from "child_process";
 import path from "path";
-import {dirName} from "./system";
+import { dirName } from "./system";
 import os from "os";
-import {mainProc, registerCustomLogger, sharedFileTransportOpt, zapProc} from "./log";
+import { endCustomLogger, mainProc, registerCustomLogger, sharedFileTransportOpt, zapProc } from "../services/logging.service";
 import winston from "winston";
 
 if (!process.env.ZAP_APIKEY)
@@ -46,16 +46,14 @@ export function startZapProcess(type: ZAP_SESSION_TYPES, port?: number, relSessi
             const msg = `ZAP ${type} process exited with code ${code}`;
             mainProc.info(msg);
             reject(msg);
+            endCustomLogger(loggerToUse);
         });
 
         proc.on("error", (err) => {
             const msg = `ZAP ${type} process encounter error: ${err}`;
             mainProc.error(msg);
             reject(msg);
+            endCustomLogger(loggerToUse);
         });
     })
-}
-
-export function startSharedZapProcess() {
-    return startZapProcess(ZAP_SESSION_TYPES.SHARED);
 }

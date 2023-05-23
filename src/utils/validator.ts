@@ -3,11 +3,7 @@ import urlExists from "url-exists-nodejs";
 import { OAuth2Client } from "google-auth-library";
 
 export function isOnProduction() {
-	return process.env["NODE_ENV"] === "production";
-}
-
-export function isOnDevelopment() {
-	return process.env["NODE_ENV"] === "development";
+	return process.env["NODE_ENV"] === "production" || process.env["NODE_ENV"] === "prod";
 }
 
 export async function isValidURL(urlString: string) {
@@ -24,7 +20,8 @@ export async function isValidURL(urlString: string) {
 	);
 }
 
-if (!process.env.GOOGLE_CLIENT_ID) throw "GOOGLE_CLIENT_ID not found";
+if (!process.env.GOOGLE_CLIENT_ID) 
+	throw "GOOGLE_CLIENT_ID not found";
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 

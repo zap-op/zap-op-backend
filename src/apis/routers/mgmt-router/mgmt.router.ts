@@ -1,13 +1,13 @@
 import express from "express";
-import {Validator} from "express-json-validator-middleware";
-import {JSONSchema7} from "json-schema";
-import {targetModel, targetTrashModel} from "../../../database/models/target.model";
-import {isValidURL} from "../../../utils/validator";
-import {JWTRequest} from "../../../utils/middlewares";
-import {MGMT_STATUS} from "../../../utils/types";
-import {mainProc} from "../../../utils/log";
+import { Validator } from "express-json-validator-middleware";
+import { JSONSchema7 } from "json-schema";
+import { targetModel, targetTrashModel } from "../../../models/target.model";
+import { isValidURL } from "../../../utils/validator";
+import { JWTRequest } from "../../../utils/middlewares";
+import { MGMT_STATUS } from "../../../utils/types";
+import { mainProc } from "../../../services/logging.service";
 
-const mgmtRouter = express.Router();
+export const mgmtRouter = express.Router();
 const validator = new Validator({});
 
 const postTargetSchema: JSONSchema7 = {
@@ -87,5 +87,3 @@ mgmtRouter.delete(
             res.status(500).send(MGMT_STATUS.TARGET_DELETE_FAILED);
         }
     });
-
-export {mgmtRouter, MGMT_STATUS};

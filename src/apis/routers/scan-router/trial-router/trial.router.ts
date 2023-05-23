@@ -1,11 +1,11 @@
 import express from "express";
-import {isValidURL} from "../../../../utils/validator";
-import {SCAN_STATUS} from "../../../../utils/types";
-import {spiderResults, spiderScan, spiderStatusStream} from "../../../../scan-services/zap-service/zap.service";
-import {serializeSSEEvent} from "../../../../utils/network";
-import {mainProc, userSession} from "../../../../utils/log";
+import { isValidURL } from "../../../../utils/validator";
+import { SCAN_STATUS } from "../../../../utils/types";
+import { spiderResults, spiderScan, spiderStatusStream } from "../../../../services/zapClient.service";
+import { serializeSSEEvent } from "../../../../utils/network";
+import { mainProc, userSession } from "../../../../services/logging.service";
 
-const trialRouter = express.Router();
+export const trialRouter = express.Router();
 
 trialRouter.get("/", async (req, res) => {
     const headers = {
@@ -67,5 +67,3 @@ trialRouter.get("/results", async (req, res) => {
 
     return res.status(200).send(results);
 });
-
-export {trialRouter};

@@ -1,21 +1,21 @@
 import express from "express";
-import {JSONSchema7} from "json-schema";
-import {Validator} from "express-json-validator-middleware";
-import {JWTRequest} from "../../../../../utils/middlewares";
-import {isValidURL} from "../../../../../utils/validator";
-import {SCAN_STATUS} from "../../../../../utils/types";
-import {zapSpiderScanSessionModel} from "../../../../../database/models/zap-spider.scan-session.model";
-import {mainProc, userSession} from "../../../../../utils/log";
-import {isValidObjectId} from "mongoose";
-import {serializeSSEEvent} from "../../../../../utils/network";
+import { JSONSchema7 } from "json-schema";
+import { Validator } from "express-json-validator-middleware";
+import { JWTRequest } from "../../../../../utils/middlewares";
+import { isValidURL } from "../../../../../utils/validator";
+import { SCAN_STATUS } from "../../../../../utils/types";
+import { zapSpiderScanSessionModel } from "../../../../../models/scan-session.model";
+import { mainProc, userSession } from "../../../../../services/logging.service";
+import { isValidObjectId } from "mongoose";
+import { serializeSSEEvent } from "../../../../../utils/network";
 import {
     spiderFullResults,
     spiderResults,
     spiderScan,
     spiderStatusStream
-} from "../../../../../scan-services/zap-service/zap.service";
+} from "../../../../../services/zapClient.service";
 
-const zapSpiderRouter = express.Router();
+export const zapSpiderRouter = express.Router();
 const validator = new Validator({});
 
 export const postZapSpiderSchema: JSONSchema7 = {
@@ -168,5 +168,3 @@ zapSpiderRouter.get("/fullResults", async (req, res) => {
 
     return res.status(200).send(results);
 });
-
-export {zapSpiderRouter};

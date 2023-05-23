@@ -1,11 +1,11 @@
-import database from "../database";
-import {Schema} from "mongoose";
-import {TTargetModel} from "../../utils/types";
+import { database } from "../services/database.service";
+import { Schema } from "mongoose";
+import { TTargetModel } from "../utils/types";
 
-export const TARGET_COLLECTION =
+const TARGET_COLLECTION =
     "targets" + (process.env.NODE_ENV === "development" ? "_tests" : "");
 
-export const TARGET_TRASH_COLLECTION =
+const TARGET_TRASH_COLLECTION =
     "trashed_targets" + (process.env.NODE_ENV === "development" ? "_tests" : "");
 
 const targetSchema = new database!.Schema<TTargetModel>(

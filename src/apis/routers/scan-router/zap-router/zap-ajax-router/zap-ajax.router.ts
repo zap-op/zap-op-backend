@@ -1,25 +1,25 @@
 import express from "express";
-import {Validator} from "express-json-validator-middleware";
-import {JSONSchema7} from "json-schema";
+import { Validator } from "express-json-validator-middleware";
+import { JSONSchema7 } from "json-schema";
 // @ts-ignore
 import ZapClient from "zaproxy";
-import {isValidURL} from "../../../../../utils/validator";
-import {SCAN_STATUS} from "../../../../../utils/types";
-import {JWTRequest} from "../../../../../utils/middlewares";
-import {zapAjaxScanSessionModel} from "../../../../../database/models/zap-ajax.scan-session.model";
-import {mainProc, userSession} from "../../../../../utils/log";
-import {isValidObjectId} from "mongoose";
-import {serializeSSEEvent} from "../../../../../utils/network";
+import { isValidURL } from "../../../../../utils/validator";
+import { SCAN_STATUS } from "../../../../../utils/types";
+import { JWTRequest } from "../../../../../utils/middlewares";
+import { zapAjaxScanSessionModel } from "../../../../../models/scan-session.model";
+import { mainProc, userSession } from "../../../../../services/logging.service";
+import { isValidObjectId } from "mongoose";
+import { serializeSSEEvent } from "../../../../../utils/network";
 import {
     ajaxFullResults,
     ajaxResults,
     ajaxScan,
     ajaxStatusStream,
-    connectZapService
-} from "../../../../../scan-services/zap-service/zap.service";
-import {startZapProcess, ZAP_SESSION_TYPES} from "../../../../../utils/zapProc";
+    initZapClient
+} from "../../../../../services/zapClient.service";
+import { startZapProcess, ZAP_SESSION_TYPES } from "../../../../../utils/zapProc";
 
-const zapAjaxRouter = express.Router();
+export const zapAjaxRouter = express.Router();
 const validator = new Validator({});
 
 export const postZapAjaxSchema: JSONSchema7 = {
@@ -106,7 +106,7 @@ zapAjaxRouter.get("/", async (req: JWTRequest, res) => {
             tempZapClients.delete(zapClientId);
         });
 
-        const zapClient = connectZapService(await startZapProcess(ZAP_SESSION_TYPES.TEMP));
+        const zapClient = initZapClient(await startZapProcess(ZAP_SESSION_TYPES.TEMP));
         const zapClientId = Math.floor(Math.random() * 1000000);
         tempZapClients.set(zapClientId, zapClient);
 
@@ -169,5 +169,3 @@ zapAjaxRouter.get("/fullResults", async (req, res) => {
 
     return res.status(200).send(results);
 });
-
-export {zapAjaxRouter};
