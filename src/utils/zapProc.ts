@@ -9,12 +9,9 @@ import crypto from "crypto";
 if (!process.env.ZAP_APIKEY)
     throw "ZAP_APIKEY not found";
 
-if (os.platform() === "win32")
-    throw "win32 not supported";
-
 const ZAP_ROOT = path.join(dirName(import.meta), "..", "..", "ZAP_2.12.0");
 const ZAP_SESSIONS_DIR = path.join(ZAP_ROOT, "zap-session");
-const ZAP_EXE = path.join(ZAP_ROOT, "zap.sh");
+const ZAP_EXE = path.join(ZAP_ROOT, os.platform() === "win32" ? "zap.bat" : "zap.sh");
 const ZAP_OPTS = ["-daemon", "-addoninstallall", "-addonupdate", "-config", `api.key=${process.env.ZAP_APIKEY}`];
 
 export enum ZAP_SESSION_TYPES {
