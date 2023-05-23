@@ -35,7 +35,7 @@ const SCAN_TYPE = {
     },
 };
 
-export const zapSpiderScanSessionModel = scanSessionModel.discriminator<TZapSpiderScanSession & TScanSession>(
+export const zapSpiderScanSessionModel = scanSessionModel.discriminator<TZapSpiderScanSession>(
     SCAN_TYPE.ZAP.SPIDER,
     new database!.Schema<TZapSpiderScanSession>({
         scanConfig: {
@@ -57,23 +57,9 @@ export const zapSpiderScanSessionModel = scanSessionModel.discriminator<TZapSpid
                 default: false,
             },
         },
-        result: {
-            inScope: {
-                type: [String],
-                default: []
-            },
-            outOfScope: {
-                type: [String],
-                default: []
-            },
-            error: {
-                type: [String],
-                default: []
-            }
-        }
     }));
 
-export const zapAjaxScanSessionModel = scanSessionModel.discriminator<TZapAjaxScanSession & TScanSession>(
+export const zapAjaxScanSessionModel = scanSessionModel.discriminator<TZapAjaxScanSession>(
     SCAN_TYPE.ZAP.AJAX,
     new database!.Schema<TZapAjaxScanSession>({
         scanConfig: {
@@ -90,18 +76,4 @@ export const zapAjaxScanSessionModel = scanSessionModel.discriminator<TZapAjaxSc
                 default: false,
             },
         },
-        result: {
-            inScope: {
-                type: [String],
-                default: []
-            },
-            outOfScope: {
-                type: [String],
-                default: []
-            },
-            error: {
-                type: [String],
-                default: []
-            }
-        }
     }));

@@ -1,17 +1,23 @@
 import express from "express";
-import {Validator} from "express-json-validator-middleware";
-import {JSONSchema7} from "json-schema";
+import { Validator } from "express-json-validator-middleware";
+import { JSONSchema7 } from "json-schema";
 // @ts-ignore
 import ZapClient from "zaproxy";
-import {isValidURL} from "../../../../../utils/validator";
-import {mainProc, userSession} from "../../../../../services/logging.service";
-import {isValidObjectId} from "mongoose";
-import {serializeSSEEvent} from "../../../../../utils/network";
-import {ajaxFullResults, ajaxResults,} from "../../../../../utils/zapClient";
-import {ProtectedRequest} from "../../../../../submodules/utility/auth";
-import {SCAN_STATUS} from "../../../../../submodules/utility/status";
-import {zapAjaxScanSessionModel} from "../../../../../models/scan-session.model";
-import {ajaxScanStatusStream, ajaxStartNewScan} from "../../../../../services/scanner.service";
+import { isValidURL } from "../../../../../utils/validator";
+import { mainProc, userSession } from "../../../../../services/logging.service";
+import { isValidObjectId } from "mongoose";
+import { serializeSSEEvent } from "../../../../../utils/network";
+import {
+    ajaxFullResults,
+    ajaxResults,
+    ajaxScan,
+    ajaxStatusStream,
+    initZapClient,
+} from "../../../../../utils/zapClient";
+import { startZapProcess, ZAP_SESSION_TYPES } from "../../../../../utils/zapProc";
+import { ProtectedRequest } from "../../../../../submodules/utility/auth";
+import { SCAN_STATUS } from "../../../../../submodules/utility/status";
+import { zapAjaxScanSessionModel } from "../../../../../models/scan-session.model";
 
 export function initZapAjaxRouter() {
     const zapAjaxRouter = express.Router();
@@ -51,42 +57,34 @@ export function initZapAjaxRouter() {
             if (!(await isValidURL(body.url)))
                 return res.status(400).send(SCAN_STATUS.INVAVLID_URL);
 
-            const scanSession = new zapAjaxScanSessionModel({
-                url: body.url,
-                userId: req.session.userId,
-                scanConfig: {
-                    inScope: body.scanConfig.inScope,
-                    contextName: body.scanConfig.contextName,
-                    subtreeOnly: body.scanConfig.subtreeOnly,
-                },
-            });
-            await scanSession.save().catch(error => {
+            try {
+                const scanSession = new zapAjaxScanSessionModel({
+                    url: body.url,
+                    userId: req.session.userId,
+                    scanConfig: {
+                        inScope: body.scanConfig.inScope,
+                        contextName: body.scanConfig.contextName,
+                        subtreeOnly: body.scanConfig.subtreeOnly,
+                    },
+                });
+                await scanSession.save();
+                return res.status(201).send({
+                    scanSession: scanSession._id,
+                    scanStatus: SCAN_STATUS.SESSION_INITIALIZE_SUCCEED,
+                });
+            } catch (error) {
                 mainProc.error(error);
-                return res.status(500).send(SCAN_STATUS.SESSION_INITIALIZE_FAIL);
-            });
-
-            const scanId = await ajaxStartNewScan(scanSession.url, scanSession.scanConfig).catch(error => {
-                mainProc.error(error);
-                return res.status(500).send(SCAN_STATUS.SESSION_INITIALIZE_FAIL);
-            });
-            if (!scanId)
-                return res.status(500).send(SCAN_STATUS.ZAP_INITIALIZE_FAIL);
-
-            return res.status(201).send({
-                scanSession: scanSession._id,
-                scanId
-            });
+                res.status(500).send(SCAN_STATUS.SESSION_INITIALIZE_FAIL);
+            }
         }
     );
+
+    const tempZapClients: Map<number, ZapClient> = new Map();
 
     zapAjaxRouter.get("/", async (req: ProtectedRequest, res) => {
         const scanSession = req.query.scanSession;
         if (!scanSession || !isValidObjectId(scanSession))
             return res.status(400).send(SCAN_STATUS.INVALID_SESSION);
-
-        const scanId = req.query.scanId as string;
-        if (!scanId || isNaN(parseInt(scanId)))
-            return res.status(400).send(SCAN_STATUS.INVALID_ID);
 
         const headers = {
             "Content-Type": "text/event-stream",
@@ -102,16 +100,24 @@ export function initZapAjaxRouter() {
             if (!scanSessionDoc || scanSessionDoc.userId.toString() !== req.session.userId)
                 return res.write(serializeSSEEvent("error", SCAN_STATUS.INVALID_SESSION));
 
-            req.on("close", () => {
+            req.on("close", async () => {
                 userSession.info(`ZAP ajax session ${scanSessionDoc._id} disconnected`);
                 writer.unsubscribe();
+                await zapClient.core.shutdown();
+                tempZapClients.delete(zapClientId);
             });
 
-            const status$ = ajaxScanStatusStream(parseInt(scanId));
-            if (status$ === undefined) {
-                return res.write(serializeSSEEvent("error", SCAN_STATUS.INVALID_ID));
-            }
-            const writer = status$.subscribe({
+            const zapClient = initZapClient(await startZapProcess(ZAP_SESSION_TYPES.TEMP));
+            const zapClientId = Math.floor(Math.random() * 1000000);
+            tempZapClients.set(zapClientId, zapClient);
+
+            res.write(serializeSSEEvent("id", {id: zapClientId}));
+
+            const scanId = await ajaxScan(zapClient, scanSessionDoc.url, scanSessionDoc.scanConfig);
+            if (!scanId)
+                return res.write(serializeSSEEvent("error", SCAN_STATUS.ZAP_INITIALIZE_FAIL));
+
+            const writer = ajaxStatusStream(zapClient).subscribe({
                 next: status => res.write(serializeSSEEvent("status", status)),
                 error: err => res.write(serializeSSEEvent("error", err))
             });
