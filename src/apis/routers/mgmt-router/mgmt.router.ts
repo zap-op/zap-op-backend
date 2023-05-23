@@ -4,8 +4,7 @@ import { JSONSchema7 } from "json-schema";
 import { targetModel, targetTrashModel } from "../../../models/target.model";
 import { isValidURL } from "../../../utils/validator";
 import { mainProc } from "../../../services/logging.service";
-import { ProtectedRequest } from "../../../submodules/utility/auth";
-import { MGMT_STATUS } from "../../../submodules/utility/status";
+import { ProtectedRequest, MGMT_STATUS } from "../../../utils/types";
 
 export function initMgmtRouter() {
     const mgmtRouter = express.Router();

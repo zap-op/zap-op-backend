@@ -11,8 +11,7 @@ import {
     spiderScan,
     spiderStatusStream
 } from "../../../../../utils/zapClient";
-import { ProtectedRequest } from "../../../../../submodules/utility/auth";
-import { SCAN_STATUS } from "../../../../../submodules/utility/status";
+import { ProtectedRequest, SCAN_STATUS } from "../../../../../utils/types";
 import { zapSpiderScanSessionModel } from "../../../../../models/scan-session.model";
 
 export function initZapSpiderRouter() {
@@ -117,8 +116,8 @@ export function initZapSpiderRouter() {
             const emitDistinct = req.query.emitDistinct === "true";
             const removeOnDone = req.query.removeOnDone === "true";
             const writer = spiderStatusStream(parseInt(scanId), emitDistinct, removeOnDone).subscribe({
-                next: status => res.write(serializeSSEEvent("status", status)),
-                error: err => res.write(serializeSSEEvent("error", err))
+                next: (status: number) => res.write(serializeSSEEvent("status", status)),
+                error: (err:any) => res.write(serializeSSEEvent("error", err))
             });
         } catch (error) {
             mainProc.error(`Error while polling ZAP spider results: ${error}`);

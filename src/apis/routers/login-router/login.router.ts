@@ -2,8 +2,7 @@ import express from "express";
 import { getUserDataFromAccessToken } from "../../../utils/validator";
 import { userModel } from "../../../models/user.model";
 import { mainProc } from "../../../services/logging.service";
-import { LOGIN_STATUS } from "../../../submodules/utility/status";
-import { ProtectedRequest } from "../../../submodules/utility/auth";
+import { ProtectedRequest, LOGIN_STATUS } from "../../../utils/types";
 
 export function initLoginRouter() {
     const loginRouter = express.Router();

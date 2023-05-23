@@ -15,8 +15,7 @@ import {
     initZapClient,
 } from "../../../../../utils/zapClient";
 import { startZapProcess, ZAP_SESSION_TYPES } from "../../../../../utils/zapProc";
-import { ProtectedRequest } from "../../../../../submodules/utility/auth";
-import { SCAN_STATUS } from "../../../../../submodules/utility/status";
+import { ProtectedRequest, SCAN_STATUS } from "../../../../../utils/types";
 import { zapAjaxScanSessionModel } from "../../../../../models/scan-session.model";
 
 export function initZapAjaxRouter() {
@@ -118,8 +117,8 @@ export function initZapAjaxRouter() {
                 return res.write(serializeSSEEvent("error", SCAN_STATUS.ZAP_INITIALIZE_FAIL));
 
             const writer = ajaxStatusStream(zapClient).subscribe({
-                next: status => res.write(serializeSSEEvent("status", status)),
-                error: err => res.write(serializeSSEEvent("error", err))
+                next: (status:number) => res.write(serializeSSEEvent("status", status)),
+                error: (err:any) => res.write(serializeSSEEvent("error", err))
             });
         } catch (error) {
             mainProc.error(`Error while polling ZAP ajax results: ${error}`);
