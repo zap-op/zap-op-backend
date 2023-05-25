@@ -1,7 +1,7 @@
 import { Schema } from "mongoose";
 import { database } from "../services/database.service";
 import { isOnProduction } from "../utils/validator";
-import { TScanSession, TZapAjaxScanSession, TZapSpiderScanSession } from "../utils/types";
+import { TScanSession, TZapAjaxScanSessionModel, TZapSpiderScanSessionModel } from "../utils/types";
 
 const SCAN_SESSION_COLLECTION =
     "scan_sessions" + (!isOnProduction() ? "_tests" : "");
@@ -25,6 +25,10 @@ const scanSessionModel = database!.model<TScanSession>(
                 type: Schema.Types.ObjectId,
                 required: true,
             },
+            targetId: {
+                type: Schema.Types.ObjectId,
+                required: true,
+            },
         },
         {
             timestamps: {
@@ -35,9 +39,9 @@ const scanSessionModel = database!.model<TScanSession>(
     )
 );
 
-export const zapSpiderScanSessionModel = scanSessionModel.discriminator<TZapSpiderScanSession & TScanSession>(
+export const zapSpiderScanSessionModel = scanSessionModel.discriminator<TZapSpiderScanSessionModel>(
     SCAN_TYPE.ZAP.SPIDER,
-    new database!.Schema<TZapSpiderScanSession>({
+    new database!.Schema<TZapSpiderScanSessionModel>({
         scanConfig: {
             maxChildren: {
                 type: Schema.Types.Number,
@@ -73,9 +77,9 @@ export const zapSpiderScanSessionModel = scanSessionModel.discriminator<TZapSpid
         }
     }));
 
-export const zapAjaxScanSessionModel = scanSessionModel.discriminator<TZapAjaxScanSession & TScanSession>(
+export const zapAjaxScanSessionModel = scanSessionModel.discriminator<TZapAjaxScanSessionModel>(
     SCAN_TYPE.ZAP.AJAX,
-    new database!.Schema<TZapAjaxScanSession>({
+    new database!.Schema<TZapAjaxScanSessionModel>({
         scanConfig: {
             inScope: {
                 type: Schema.Types.Boolean,
