@@ -14,6 +14,10 @@ const targetSchema = new database!.Schema<TTargetModel>(
             type: Schema.Types.ObjectId,
             required: true
         },
+        name: {
+            type: String,
+            required: true
+        },
         target: {
             type: Schema.Types.String,
             required: true
