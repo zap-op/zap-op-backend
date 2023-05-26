@@ -18,6 +18,9 @@ loginRouter.post("/", async (req, res) => {
 		return res.status(400).send(LOGIN_STATUS.TOKEN_INVALID);
 	}
 
+	if (!googleData)
+		return res.status(400).send(LOGIN_STATUS.TOKEN_INVALID);
+
 	const userObj: GgUserData = {
 		sub: googleData.sub,
 		email: googleData.email,

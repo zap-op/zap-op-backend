@@ -1,12 +1,12 @@
 import validator from "validator";
-import urlExists from "url-exists-nodejs";
-import { OAuth2Client } from "google-auth-library";
+import urlExistNodeJS from "url-exists-nodejs";
+import { OAuth2Client, TokenPayload } from "google-auth-library";
 
-export function isOnProduction() {
+export function isOnProduction(): boolean {
 	return process.env["NODE_ENV"] === "production" || process.env["NODE_ENV"] === "prod";
 }
 
-export async function isValidURL(urlString: string) {
+export async function isValidURL(urlString: string): Promise<boolean> {
 	return (
 		!urlString.includes("localhost") &&
 		!urlString.includes("127.0.0.1") &&
@@ -16,7 +16,7 @@ export async function isValidURL(urlString: string) {
 			allow_underscores: true,
 			allow_protocol_relative_urls: true,
 		}) &&
-		(await urlExists(urlString))
+		(await urlExistNodeJS(urlString))
 	);
 }
 
@@ -25,12 +25,10 @@ if (!process.env.GOOGLE_CLIENT_ID)
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
-export async function isValidGoogleIDToken(token: string) {
+export async function isValidGoogleIDToken(token: string): Promise<TokenPayload | undefined> {
 	const ticket = await client.verifyIdToken({
 		idToken: token,
 		audience: process.env.GOOGLE_CLIENT_ID,
 	});
-	const payload = ticket.getPayload();
-	if (!payload) throw "No payload";
-	return payload;
+	return ticket.getPayload();
 }

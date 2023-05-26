@@ -2,7 +2,7 @@ import { fileURLToPath } from "url";
 import { dirname } from "path";
 import { endAllLoggers, mainProc } from "../services/logging.service";
 
-export function setupProcessExitHooks() {
+export function setupProcessExitHooks(): void {
     // Only works when there is no task running
     // Since we have a server always listening port, this handler will never execute
     process.on("beforeExit", (code) => {
@@ -36,7 +36,7 @@ export function setupProcessExitHooks() {
     });
 }
 
-export function dirName(fileMeta: any) {
+export function dirName(fileMeta: any): string {
     const fileName = fileURLToPath(fileMeta.url);
     return dirname(fileName);
 }

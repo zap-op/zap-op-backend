@@ -13,7 +13,7 @@ enum INTERNAL_LOG_TYPES {
     ZAP_PROC = "zapProc"
 }
 
-const sharedLoggerOpt = (logType: string) => {
+const sharedLoggerOpt = function(logType: string) {
     return {
         format: winston.format.combine(
             winston.format.timestamp(),
@@ -26,7 +26,7 @@ const sharedLoggerOpt = (logType: string) => {
     };
 };
 
-export const sharedFileTransportOpt = (logType: string) => {
+export const sharedFileTransportOpt = function(logType: string) {
     return new winston.transports.DailyRotateFile({
         format: winston.format.simple(),
         filename: `${logType}-%DATE%`,
@@ -37,7 +37,7 @@ export const sharedFileTransportOpt = (logType: string) => {
     })
 };
 
-export const sharedConsoleTransportOpt = () => {
+export const sharedConsoleTransportOpt = function() {
     return new winston.transports.Console({format: winston.format.cli()});
 };
 
@@ -86,7 +86,7 @@ export const zapProc = winston.loggers.get(INTERNAL_LOG_TYPES.ZAP_PROC);
 
 const customRegisteredLogger: winston.Logger[] = [];
 
-export function registerCustomLogger(logType: string, transportsOpt: Transport[]) {
+export function registerCustomLogger(logType: string, transportsOpt: Transport[]): winston.Logger {
     winston.loggers.add(logType, Object.assign(
         {},
         sharedLoggerOpt(logType),
@@ -99,12 +99,12 @@ export function registerCustomLogger(logType: string, transportsOpt: Transport[]
     return logger;
 }
 
-export function endCustomLogger(logger: winston.Logger) {
+export function endCustomLogger(logger: winston.Logger): void {
     if (customRegisteredLogger.splice(customRegisteredLogger.indexOf(logger), 1).length > 0)
         logger.end();
 }
 
-export function endAllLoggers() {
+export function endAllLoggers(): void {
     mainProc.end();
     httpRequest.end();
     userSession.end();

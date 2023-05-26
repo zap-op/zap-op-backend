@@ -15,11 +15,11 @@ const targetSchema = new database!.Schema<TTargetModel>(
             required: true
         },
         target: {
-            type: String,
+            type: Schema.Types.String,
             required: true
         },
         tag: {
-            type: [String]
+            type: [Schema.Types.String]
         }
     },
     {

@@ -4,6 +4,7 @@ import { dirName } from "./system";
 import os from "os";
 import { endCustomLogger, mainProc, registerCustomLogger, sharedFileTransportOpt, zapProc } from "../services/logging.service";
 import winston from "winston";
+import crypto from "crypto";
 
 if (!process.env.ZAP_APIKEY)
     throw "ZAP_APIKEY not found";
@@ -18,14 +19,19 @@ export enum ZAP_SESSION_TYPES {
     TEMP = "temp"
 }
 
-export function startZapProcess(type: ZAP_SESSION_TYPES, port?: number, relSessionDir?: string, logger?: winston.Logger) {
+export function startZapProcess(type: ZAP_SESSION_TYPES, port?: number, relSessionDir?: string): Promise<number> {
     const sessionDir = path.join(ZAP_SESSIONS_DIR, type, relSessionDir ?? Date.now().toString());
     const zapOptions = ZAP_OPTS.concat("-newsession", path.join(sessionDir, "data"));
     if (port)
         zapOptions.push("-port", port.toString());
 
-    const loggerToUse = type === ZAP_SESSION_TYPES.SHARED ? zapProc : logger ??
-        registerCustomLogger("zapTemp", [sharedFileTransportOpt("zapTemp")]);
+    let loggerToUse: winston.Logger;
+    if (type === ZAP_SESSION_TYPES.SHARED)
+        loggerToUse = zapProc;
+    else {
+        const customLoggerName = `zapTemp-${crypto.randomUUID()}`
+        loggerToUse = registerCustomLogger(customLoggerName, [sharedFileTransportOpt(customLoggerName)]);
+    }
 
     const proc = spawn(ZAP_EXE, zapOptions);
 

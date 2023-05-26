@@ -7,7 +7,7 @@
     "scripts": {
         "build": "npx tsc",
         "start": "npm run build && cross-env NODE_ENV=production node --es-module-specifier-resolution=node dist/server.js",
-        "dev": "npm run build && cross-env NODE_ENV=development node --es-module-specifier-resolution=node dist/server.js"
+        "dev": "npm run build && cross-env NODE_ENV=development node --inspect --es-module-specifier-resolution=node dist/server.js"
     },
     "author": "Huy Pham",
     "license": "ISC",
@@ -28,7 +28,7 @@
         "validator": "^13.9.0",
         "winston": "^3.8.2",
         "winston-daily-rotate-file": "^4.7.1",
-        "zaproxy": "^2.0.0-rc.1"
+        "zaproxy": "^1.0.1"
     },
     "devDependencies": {
         "@types/cookie-parser": "^1.4.3",

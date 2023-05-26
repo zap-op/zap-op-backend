@@ -1,7 +1,7 @@
 import "dotenv/config";
 import { httpRequest, mainProc } from "./services/logging.service";
 import { setupProcessExitHooks } from "./utils/system";
-import { ZAP_SESSION_TYPES, startZapProcess } from "./utils/zapProc";
+import { startZapProcess, ZAP_SESSION_TYPES } from "./utils/zapProcess";
 import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
@@ -59,11 +59,11 @@ app.use((err: any, _req: any, res: any, next: any) => {
 	res.status(400).json({
 		msg: err.validationErrors,
 	});
+
 	next();
 });
 
-const PORT = 8888;
-const server = app.listen(PORT, () => {
+const server = app.listen(8888, () => {
 	const addr = server.address();
 	mainProc.info(`Started REST server on port ${(addr as AddressInfo | null)?.port}`);
 });
