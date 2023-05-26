@@ -2,7 +2,7 @@ import { fileURLToPath } from "url";
 import { dirname } from "path";
 import { endAllLoggers, mainProc } from "../services/logging.service";
 
-export function setupProcessExitHooks(): void {
+export function setupProcessHooks(): void {
     // Only works when there is no task running
     // Since we have a server always listening port, this handler will never execute
     process.on("beforeExit", (code) => {

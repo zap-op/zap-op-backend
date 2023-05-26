@@ -1,9 +1,13 @@
-import express from "express";
-import { trialRouter } from "./trial-router/trial.router";
-import { zapRouter } from "./zap-router/zap.router";
+import express, { Router } from "express";
+import { getTrialRouter } from "./trial-router/trial.router";
+import { getZapRouter } from "./zap-router/zap.router";
 import { authenAccessMdw, parseAccessTokenMdw, parseRefreshTokenMdw } from "../../../utils/middlewares";
 
-export const scanRouter = express.Router();
+export function getScanRouter(): Router {
+    const scanRouter = express.Router();
 
-scanRouter.use("/zap", parseAccessTokenMdw(), parseRefreshTokenMdw(), authenAccessMdw, zapRouter);
-scanRouter.use("/trial", trialRouter);
+    scanRouter.use("/trial", getTrialRouter());
+    scanRouter.use("/zap", parseAccessTokenMdw(), parseRefreshTokenMdw(), authenAccessMdw, getZapRouter());
+
+    return scanRouter;
+}

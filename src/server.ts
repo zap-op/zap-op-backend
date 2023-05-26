@@ -1,19 +1,19 @@
 import "dotenv/config";
 import { httpRequest, mainProc } from "./services/logging.service";
-import { setupProcessExitHooks } from "./utils/system";
+import { setupProcessHooks } from "./utils/system";
 import { startZapProcess, ZAP_SESSION_TYPES } from "./utils/zapProcess";
 import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
-import { initRoutes } from "./apis/route";
+import { initRouter } from "./apis/route";
 import { ValidationError } from "express-json-validator-middleware";
 import { database } from "./services/database.service";
 import { AddressInfo } from "net";
 import { initZapClientShared } from "./services/zapClient.service";
 import { isOnProduction } from "./utils/validator";
 
-mainProc.info("Setup process exit hooks");
-setupProcessExitHooks();
+mainProc.info("Setup process hooks");
+setupProcessHooks();
 
 mainProc.info("Starting ZAP process");
 const zapPort = await startZapProcess(ZAP_SESSION_TYPES.SHARED);
@@ -43,7 +43,7 @@ if (!isOnProduction())
 		next();
 	});
 
-initRoutes(app);
+initRouter(app);
 
 app.use((req, res) => {
 	res.status(404).json({

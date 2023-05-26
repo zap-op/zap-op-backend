@@ -1,8 +1,12 @@
-import express from "express";
-import { zapSpiderRouter } from "./zap-spider-router/zap-spider.router";
-import { zapAjaxRouter } from "./zap-ajax-router/zap-ajax.router";
+import express, { Router } from "express";
+import { getZapSpiderRouter } from "./zap-spider-router/zap-spider.router";
+import { getZapAjaxRouter } from "./zap-ajax-router/zap-ajax.router";
 
-export const zapRouter = express.Router();
+export function getZapRouter(): Router {
+    const zapRouter = express.Router();
 
-zapRouter.use("/spider", zapSpiderRouter);
-zapRouter.use("/ajax", zapAjaxRouter);
+    zapRouter.use("/spider", getZapSpiderRouter());
+    zapRouter.use("/ajax", getZapAjaxRouter());
+
+    return zapRouter;
+}
