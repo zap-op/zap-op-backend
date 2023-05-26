@@ -6,10 +6,10 @@ import { TScanSession, TZapAjaxScanSessionModel, TZapSpiderScanSessionModel } fr
 const SCAN_SESSION_COLLECTION =
     "scan_sessions" + (!isOnProduction() ? "_tests" : "");
 
-export const SCAN_TYPE = {
+const SCAN_TYPE = {
     ZAP: {
-        SPIDER: "ZAP_SPIDER",
-        AJAX: "ZAP_AJAX"
+        SPIDER: "ZAP_SPIDER_SCAN",
+        AJAX: "ZAP_AJAX_SCAN"
     },
 };
     
@@ -60,20 +60,6 @@ export const zapSpiderScanSessionModel = scanSessionModel.discriminator<TZapSpid
                 type: Schema.Types.Boolean,
                 default: false,
             },
-        },
-        fullResults: {
-            inScope: {
-                type: [Schema.Types.Mixed],
-                default: []
-            },
-            outOfScope: {
-                type: [Schema.Types.Mixed],
-                default: []
-            },
-            error: {
-                type: [Schema.Types.Mixed],
-                default: []
-            }
         }
     }));
 
@@ -93,19 +79,5 @@ export const zapAjaxScanSessionModel = scanSessionModel.discriminator<TZapAjaxSc
                 type: Schema.Types.Boolean,
                 default: false,
             },
-        },
-        fullResults: {
-            inScope: {
-                type: [Schema.Types.Mixed],
-                default: []
-            },
-            outOfScope: {
-                type: [Schema.Types.Mixed],
-                default: []
-            },
-            error: {
-                type: [Schema.Types.Mixed],
-                default: []
-            }
         }
     }));

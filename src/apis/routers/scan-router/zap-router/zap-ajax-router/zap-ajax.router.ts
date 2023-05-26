@@ -65,15 +65,15 @@ export function getZapAjaxRouter(): Router {
             },
         });
         await scanSession.save().catch(error => {
-            mainProc.error(error);
+            mainProc.error(`Error while saving ajax scan session: ${error}`);
             return res.status(500).send(SCAN_STATUS.SESSION_INITIALIZE_FAIL);
         });
 
         // emitDistinct is default to true
         const emitDistinct = req.query.emitDistinct !== "false";
 
-        const zapClientId = await ajaxStartAndMonitor(scanSession.url, scanSession.scanConfig, emitDistinct).catch(error => {
-            mainProc.error(error);
+        const zapClientId = await ajaxStartAndMonitor(scanSession._id, scanSession.url, scanSession.scanConfig, emitDistinct).catch(error => {
+            mainProc.error(`Error while starting ajax: ${error}`);
             return res.status(500).send(SCAN_STATUS.SESSION_INITIALIZE_FAIL);
         });
         if (!zapClientId)

@@ -80,7 +80,7 @@ export function getZapSpiderRouter(): Router {
 			},
 		});
 		await scanSession.save().catch((error) => {
-			mainProc.error(error);
+			mainProc.error(`Error while saving spider scan session: ${error}`);
 			return res.status(500).send(SCAN_STATUS.SESSION_INITIALIZE_FAIL);
 		});
 
@@ -88,8 +88,8 @@ export function getZapSpiderRouter(): Router {
 		const emitDistinct = req.query.emitDistinct !== "false";
 		const removeOnDone = req.query.removeOnDone !== "false";
 
-		const scanId = await spiderStartAndMonitor(scanSession.url, scanSession.scanConfig, emitDistinct, removeOnDone).catch((error: any) => {
-			mainProc.error(error);
+		const scanId = await spiderStartAndMonitor(scanSession._id, scanSession.url, scanSession.scanConfig, emitDistinct, removeOnDone).catch((error: any) => {
+			mainProc.error(`Error while starting spider: ${error}`);
 			return res.status(500).send(SCAN_STATUS.SESSION_INITIALIZE_FAIL);
 		});
 		if (!scanId) return res.status(500).send(SCAN_STATUS.ZAP_INITIALIZE_FAIL);
@@ -102,10 +102,12 @@ export function getZapSpiderRouter(): Router {
 
 	zapSpiderRouter.get("/", async (req: JWTRequest, res) => {
 		const scanSession = req.query.scanSession;
-		if (!scanSession || !isValidObjectId(scanSession)) return res.status(400).send(SCAN_STATUS.INVALID_SESSION);
+		if (!scanSession || !isValidObjectId(scanSession)) 
+			return res.status(400).send(SCAN_STATUS.INVALID_SESSION);
 
 		const scanId = req.query.scanId;
-		if (typeof scanId !== "string" || isNaN(parseInt(scanId))) return res.status(400).send(SCAN_STATUS.INVALID_ID);
+		if (typeof scanId !== "string" || isNaN(parseInt(scanId))) 
+			return res.status(400).send(SCAN_STATUS.INVALID_ID);
 
 		const headers = {
 			"Content-Type": "text/event-stream",
@@ -117,10 +119,12 @@ export function getZapSpiderRouter(): Router {
 
 		try {
 			const scanSessionDoc = await zapSpiderScanSessionModel.findById(scanSession);
-			if (!scanSessionDoc || scanSessionDoc.userId.toString() !== req.accessToken!.userId) return res.write(serializeSSEEvent("error", SCAN_STATUS.INVALID_SESSION));
+			if (!scanSessionDoc || scanSessionDoc.userId.toString() !== req.accessToken!.userId) 
+				return res.write(serializeSSEEvent("error", SCAN_STATUS.INVALID_SESSION));
 
 			const status$ = spiderSharedStatusStream(scanId);
-			if (!status$) return res.write(serializeSSEEvent("error", SCAN_STATUS.INVALID_ID));
+			if (!status$) 
+				return res.write(serializeSSEEvent("error", SCAN_STATUS.INVALID_ID));
 
 			const writer = status$.subscribe({
 				next: (status) => res.write(serializeSSEEvent("status", status)),
@@ -138,36 +142,44 @@ export function getZapSpiderRouter(): Router {
 
 	zapSpiderRouter.get("/results", async (req, res) => {
 		const scanId = req.query.id;
-		if (typeof scanId !== "string" || isNaN(parseInt(scanId))) return res.status(400).send(SCAN_STATUS.INVALID_ID);
+		if (typeof scanId !== "string" || isNaN(parseInt(scanId))) 
+			return res.status(400).send(SCAN_STATUS.INVALID_ID);
 
 		const offset = req.query.offet ?? "0";
-		if (typeof offset !== "string" || isNaN(parseInt(offset))) return res.status(400).send(SCAN_STATUS.INVALID_RESULT_OFFSET);
+		if (typeof offset !== "string" || isNaN(parseInt(offset))) 
+			return res.status(400).send(SCAN_STATUS.INVALID_RESULT_OFFSET);
 
 		const results = await spiderResults(scanId, parseInt(offset));
-		if (!results) return res.status(400).send(SCAN_STATUS.INVALID_ID);
+		if (!results) 
+			return res.status(400).send(SCAN_STATUS.INVALID_ID);
 
 		return res.status(200).send(results);
 	});
 
 	zapSpiderRouter.get("/fullResults", async (req, res) => {
 		const scanId = req.query.id;
-		if (typeof scanId !== "string" || isNaN(parseInt(scanId))) return res.status(400).send(SCAN_STATUS.INVALID_ID);
+		if (typeof scanId !== "string" || isNaN(parseInt(scanId))) 
+			return res.status(400).send(SCAN_STATUS.INVALID_ID);
 
 		const urlsInScopeOffset = req.query.urlsInScopeOffset ?? "0";
-		if (typeof urlsInScopeOffset !== "string" || isNaN(parseInt(urlsInScopeOffset))) return res.status(400).send(SCAN_STATUS.INVALID_RESULT_OFFSET);
+		if (typeof urlsInScopeOffset !== "string" || isNaN(parseInt(urlsInScopeOffset))) 
+			return res.status(400).send(SCAN_STATUS.INVALID_RESULT_OFFSET);
 
 		const urlsOutOfScopeOffset = req.query.urlsOutOfScopeOffset ?? "0";
-		if (typeof urlsOutOfScopeOffset !== "string" || isNaN(parseInt(urlsOutOfScopeOffset))) return res.status(400).send(SCAN_STATUS.INVALID_RESULT_OFFSET);
+		if (typeof urlsOutOfScopeOffset !== "string" || isNaN(parseInt(urlsOutOfScopeOffset))) 
+			return res.status(400).send(SCAN_STATUS.INVALID_RESULT_OFFSET);
 
 		const urlsIoErrorOffset = req.query.urlsIoErrorOffset ?? "0";
-		if (typeof urlsIoErrorOffset !== "string" || isNaN(parseInt(urlsIoErrorOffset))) return res.status(400).send(SCAN_STATUS.INVALID_RESULT_OFFSET);
+		if (typeof urlsIoErrorOffset !== "string" || isNaN(parseInt(urlsIoErrorOffset))) 
+			return res.status(400).send(SCAN_STATUS.INVALID_RESULT_OFFSET);
 
 		const results = await spiderFullResults(scanId, {
 			urlsInScopeOffset: parseInt(urlsInScopeOffset),
 			urlsOutOfScopeOffset: parseInt(urlsOutOfScopeOffset),
 			urlsIoErrorOffset: parseInt(urlsIoErrorOffset),
 		});
-		if (!results) return res.status(400).send(SCAN_STATUS.INVALID_ID);
+		if (!results) 
+			return res.status(400).send(SCAN_STATUS.INVALID_ID);
 
 		return res.status(200).send(results);
 	});

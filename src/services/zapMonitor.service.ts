@@ -1,4 +1,4 @@
-import { ajaxStatusStream, ajaxStop, spiderStop, spiderStatusStream, spiderStart, ajaxStart } from "./zapClient.service";
+import { ajaxStatusStream, ajaxStop, spiderStop, spiderStatusStream, spiderStart, ajaxStart, spiderFullResults, ajaxFullResults } from "./zapClient.service";
 import {
     BehaviorSubject,
     Connectable,
@@ -12,6 +12,8 @@ import {
 } from "rxjs";
 import { mainProc } from "./logging.service";
 import { genSHA512 } from "../utils/crypto";
+import { ObjectId } from "bson";
+import { zapAjaxScanFullResultsModel, zapSpiderScanFullResultsModel } from "../models/scan-fullresults.model";
 
 type TMonitorSessionId = {
     scanId: string;
@@ -22,11 +24,11 @@ type TMonitorSessionIdHash = string;
 
 const monitoringSessions: Map<TMonitorSessionIdHash, {
     status$: Connectable<{ status: string | "running" | "stopped" }>,
-    stopSignal$: Subject<boolean>
+    stopSignal$: Subject<boolean>,
 }> = new Map();
 
 // BEGIN ZAP SPIDER
-export async function spiderStartAndMonitor(url: string, config: any, emitDistinct?: boolean, removeOnDone?: boolean): Promise<string | undefined> {
+export async function spiderStartAndMonitor(sessionId: ObjectId, url: string, config: any, emitDistinct?: boolean, removeOnDone?: boolean): Promise<string | undefined> {
     const scanId = await spiderStart(url, config);
 
     if (!scanId) {
@@ -34,57 +36,77 @@ export async function spiderStartAndMonitor(url: string, config: any, emitDistin
         return undefined;
     }
 
-    const sessionId: TMonitorSessionId = { scanId, isAjax: false };
-    const sessionIdHash = genSHA512(sessionId);
+    const monitorId: TMonitorSessionId = { scanId, isAjax: false };
+    const monitorHash = genSHA512(monitorId);
 
     const stopSignal$ = new Subject<boolean>();
     let done = false;
+    let curStatus: string = "0";
 
     const status$ = connectable(spiderStatusStream(scanId).pipe(
         takeUntil(stopSignal$),
         tap(val => {
-            if (parseInt(val.status) >= 100) {
+            curStatus = val.status;
+            if (parseInt(val.status) === 100) {
                 if (!done) done = true;
                 else stopSignal$.next(true);
             }
         }),
         emitDistinct ? distinctUntilChanged((prev, cur) => prev.status === cur.status) : identity,
         finalize(async () => {
+            if (curStatus === "100") {
+                const fullResults = await spiderFullResults(scanId);
+                if (!fullResults)
+                    mainProc.error(`Failed to get spider full results with id: ${scanId}`);
+                else {
+                    const fullResultsDoc = new zapSpiderScanFullResultsModel({
+                        sessionId,
+                        fullResults: {
+                            urlsInScope: fullResults[0].urlsInScope,
+                            urlsOutOfScope: fullResults[1].urlsOutOfScope,
+                            urlsError: fullResults[2].urlsIoError,
+                        }
+                    });
+                    await fullResultsDoc.save().catch(error => {
+                        mainProc.error(`Error while saving spider full results: ${error}`);
+                    });
+                }
+            }
             await spiderStop(scanId, removeOnDone);
-            monitoringSessions.delete(sessionIdHash);
+            monitoringSessions.delete(monitorHash);
         })
     ), {
         connector: () => new BehaviorSubject({ status: "0" }),
         resetOnDisconnect: false
     });
 
-    monitoringSessions.set(sessionIdHash, { status$, stopSignal$ });
-    monitoringSessions.get(sessionIdHash)!.status$.connect();
-    monitoringSessions.get(sessionIdHash)!.status$.subscribe();
+    monitoringSessions.set(monitorHash, { status$, stopSignal$ });
+    monitoringSessions.get(monitorHash)!.status$.connect();
+    monitoringSessions.get(monitorHash)!.status$.subscribe();
 
     return scanId;
 }
 
 export function spiderSharedStatusStream(scanId: string): Connectable<{ status: string }> | undefined {
-    const sessionId: TMonitorSessionId = { scanId, isAjax: false };
-    return monitoringSessions.get(genSHA512(sessionId))?.status$;
+    const monitorId: TMonitorSessionId = { scanId, isAjax: false };
+    return monitoringSessions.get(genSHA512(monitorId))?.status$;
 }
 
 export function spiderSignalStop(scanId: string): void {
-    const sessionId: TMonitorSessionId = { scanId, isAjax: false };
-    const sessionIdHash = genSHA512(sessionId);
+    const monitorId: TMonitorSessionId = { scanId, isAjax: false };
+    const monitorHash = genSHA512(monitorId);
 
-    if (!monitoringSessions.has(sessionIdHash)) {
+    if (!monitoringSessions.has(monitorHash)) {
         mainProc.warn(`Stop spider with wrong id: ${scanId}`);
         return;
     }
 
-    monitoringSessions.get(sessionIdHash)!.stopSignal$.next(true);
+    monitoringSessions.get(monitorHash)!.stopSignal$.next(true);
 }
 // END ZAP SPIDER
 
 // BEGIN ZAP AJAX
-export async function ajaxStartAndMonitor(url: string, config: any, emitDistinct?: boolean): Promise<string | undefined> {
+export async function ajaxStartAndMonitor(sessionId: ObjectId, url: string, config: any, emitDistinct?: boolean): Promise<string | undefined> {
     const clientId = await ajaxStart(url, config);
 
     if (!clientId) {
@@ -92,15 +114,17 @@ export async function ajaxStartAndMonitor(url: string, config: any, emitDistinct
         return undefined;
     }
 
-    const sessionId: TMonitorSessionId = { scanId: clientId, isAjax: true };
-    const sessionIdHash = genSHA512(sessionId);
+    const monitorId: TMonitorSessionId = { scanId: clientId, isAjax: true };
+    const monitorHash = genSHA512(monitorId);
 
     const stopSignal$ = new Subject<boolean>();
     let done = false;
+    let curStatus: "running" | "stopped" = "running";
 
     const status$ = connectable(ajaxStatusStream(clientId)!.pipe(
         takeUntil(stopSignal$),
         tap(val => {
+            curStatus = val.status;
             if (val.status === "stopped") {
                 if (!done) done = true;
                 else stopSignal$.next(true);
@@ -108,35 +132,53 @@ export async function ajaxStartAndMonitor(url: string, config: any, emitDistinct
         }),
         emitDistinct ? distinctUntilChanged((prev, cur) => prev.status === cur.status) : identity,
         finalize(async () => {
+            if (curStatus === "stopped") {
+                const fullResults = await ajaxFullResults(clientId);
+                if (!fullResults)
+                    mainProc.error(`Failed to get ajax full results with id: ${clientId}`);
+                else {
+                    const fullResultsDoc = new zapAjaxScanFullResultsModel({
+                        sessionId,
+                        fullResults: {
+                            urlsInScope: fullResults[0].inScope,
+                            urlsOutOfScope: fullResults[1].outOfScope,
+                            urlsError: fullResults[2].errors,
+                        }
+                    });
+                    await fullResultsDoc.save().catch(error => {
+                        mainProc.error(`Error while saving ajax full results: ${error}`);
+                    });
+                }
+            }
             await ajaxStop(clientId);
-            monitoringSessions.delete(sessionIdHash);
+            monitoringSessions.delete(monitorHash);
         })
     ), {
         connector: () => new BehaviorSubject({ status: "running" }),
         resetOnDisconnect: false
     });
 
-    monitoringSessions.set(sessionIdHash, { status$, stopSignal$ });
-    monitoringSessions.get(sessionIdHash)!.status$.connect();
-    monitoringSessions.get(sessionIdHash)!.status$.subscribe();
+    monitoringSessions.set(monitorHash, { status$, stopSignal$ });
+    monitoringSessions.get(monitorHash)!.status$.connect();
+    monitoringSessions.get(monitorHash)!.status$.subscribe();
 
     return clientId;
 }
 
 export function ajaxSharedStatusStream(clientId: string): Connectable<{ status: "running" | "stopped" }> | undefined {
-    const sessionId: TMonitorSessionId = { scanId: clientId, isAjax: true };
-    return monitoringSessions.get(genSHA512(sessionId))?.status$ as Connectable<{ status: "running" | "stopped" }>;
+    const monitorId: TMonitorSessionId = { scanId: clientId, isAjax: true };
+    return monitoringSessions.get(genSHA512(monitorId))?.status$ as Connectable<{ status: "running" | "stopped" }>;
 }
 
 export function ajaxSignalStop(clientId: string): void {
-    const sessionId: TMonitorSessionId = { scanId: clientId, isAjax: true };
-    const sessionIdHash = genSHA512(sessionId);
+    const monitorId: TMonitorSessionId = { scanId: clientId, isAjax: true };
+    const monitorHash = genSHA512(monitorId);
 
-    if (!monitoringSessions.has(sessionIdHash)) {
+    if (!monitoringSessions.has(monitorHash)) {
         mainProc.warn(`Stop ajax with wrong id: ${clientId}`);
         return;
     }
 
-    monitoringSessions.get(sessionIdHash)!.stopSignal$.next(true);
+    monitoringSessions.get(monitorHash)!.stopSignal$.next(true);
 }
 // END ZAP AJAX

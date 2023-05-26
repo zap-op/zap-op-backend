@@ -15,7 +15,7 @@ export function getLoginRouter(): Router {
 		try {
 			googleData = await isValidGoogleIDToken(req.cookies[TOKEN_TYPE.GOOGLE]);
 		} catch (err) {
-			mainProc.error(err);
+			mainProc.error(`Error while validating Google token: ${err}`);
 			return res.status(400).send(LOGIN_STATUS.TOKEN_INVALID);
 		}
 
@@ -50,7 +50,7 @@ export function getLoginRouter(): Router {
 				userId = userBySub.id;
 			}
 		} catch (error) {
-			mainProc.error(error);
+			mainProc.error(`Error while adding new user: ${error}`);
 			return res.status(500).send(LOGIN_STATUS.USER_ADD_FAILED);
 		}
 

@@ -31,13 +31,11 @@ export function getMgmtRouter(): Router {
     };
 
     mgmtRouter.get("/targets", async (req: JWTRequest, res) => {
-        const targets = await targetModel.find({"userId": req.accessToken!.userId});
+        const targets = await targetModel.find({ "userId": req.accessToken!.userId });
         res.status(200).json(targets);
     });
 
-    mgmtRouter.post(
-        "/target",
-        validator.validate({body: postTargetSchema}),
+    mgmtRouter.post("/target", validator.validate({ body: postTargetSchema }),
         async (req: JWTRequest, res) => {
             const body = req.body;
 
@@ -61,33 +59,30 @@ export function getMgmtRouter(): Router {
 
                 return res.status(201).send(MGMT_STATUS.TARGET_ADDED);
             } catch (error) {
-                mainProc.error(error);
+                mainProc.error(`Error while adding new target: ${error}`);
                 res.status(500).send(MGMT_STATUS.TARGET_ADD_FAILED);
             }
         });
 
-    mgmtRouter.delete(
-        "/target",
-        async (req: JWTRequest, res) => {
-            if (!req.query.id)
-                return res.status(400).send(MGMT_STATUS.TARGET_INVALID_ID);
+    mgmtRouter.delete("/target", async (req: JWTRequest, res) => {
+        if (!req.query.id)
+            return res.status(400).send(MGMT_STATUS.TARGET_INVALID_ID);
 
-            try {
-                const target = await targetModel.findById(req.query.id);
-                if (!target || target.userId.toString() !== req.accessToken!.userId)
-                    return res.status(400).send(MGMT_STATUS.TARGET_FIND_FAILED);
+        try {
+            const target = await targetModel.findById(req.query.id);
+            if (!target || target.userId.toString() !== req.accessToken!.userId)
+                return res.status(400).send(MGMT_STATUS.TARGET_FIND_FAILED);
 
-                const trashedTarget = new targetTrashModel(target.toObject());
+            const trashedTarget = new targetTrashModel(target.toObject());
 
-                await trashedTarget.save();
-                await target.deleteOne();
+            await trashedTarget.save();
+            await target.deleteOne();
 
-                return res.status(200).send(MGMT_STATUS.TARGET_MOVED_TO_TRASH);
-            } catch (error) {
-                mainProc.error(error);
-                res.status(500).send(MGMT_STATUS.TARGET_DELETE_FAILED);
-            }
-        });
+            return res.status(200).send(MGMT_STATUS.TARGET_MOVED_TO_TRASH);
+        } catch (error) {
+            mainProc.error(`Error while deleting target: ${error}`);
+            res.status(500).send(MGMT_STATUS.TARGET_DELETE_FAILED);
+        }});
 
     return mgmtRouter;
 }

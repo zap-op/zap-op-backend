@@ -57,7 +57,7 @@ export async function spiderStop(scanId: string, removeScan?: boolean): Promise<
 
 export function spiderStatusStream(scanId: string): Observable<{status: string}> {
     return timer(ZAP_POLL_DELAY, ZAP_POLL_INTERVAL).pipe(
-        switchMap(_ => from(zapClientShared.spider.status(scanId)) as Observable<{status: string}>),
+        switchMap(() => from(zapClientShared.spider.status(scanId)) as Observable<{status: string}>),
         retry(ZAP_POLL_MAX_RETRY),
         catchError(err => {
             throw `Error while polling zap spider status: ${err}`
