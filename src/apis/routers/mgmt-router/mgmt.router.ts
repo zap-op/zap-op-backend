@@ -1,12 +1,18 @@
 import express, { Router } from "express";
 import { Validator } from "express-json-validator-middleware";
 import { JSONSchema7 } from "json-schema";
-import { targetModel, targetTrashModel } from "../../../models/target.model";
 import { isValidURL } from "../../../utils/validator";
 import { JWTRequest } from "../../../utils/middlewares";
-import { MGMT_STATUS } from "../../../utils/types";
 import { mainProc } from "../../../services/logging.service";
-import { scanSessionModel } from "../../../models/scan-session.model";
+import {
+	targetModel, //
+	targetTrashModel,
+	scanSessionModel,
+} from "../../../models";
+import {
+	MGMT_STATUS, //
+	TTargetModel,
+} from "../../../utils/types";
 
 export function getMgmtRouter(): Router {
 	const mgmtRouter = express.Router();
@@ -98,6 +104,7 @@ export function getMgmtRouter(): Router {
 			.find({
 				userPop: req.accessToken!.userId,
 			})
+			.populate<{ targetPop: TTargetModel }>("targetPop", "name target")
 			.exec();
 		res.status(200).json(scanSessions);
 	});

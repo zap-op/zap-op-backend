@@ -1,9 +1,13 @@
 import { Schema } from "mongoose";
 import { database } from "../services/database.service";
 import { isOnProduction } from "../utils/validator";
-import { TScanSession, TZapAjaxScanSessionModel, TZapSpiderScanSessionModel } from "../utils/types";
 import { TARGET_COLLECTION } from "./target.model";
 import { USER_COLLECTION } from "./user.model";
+import {
+	TScanSessionModel, //
+	TZapAjaxScanSessionModel,
+	TZapSpiderScanSessionModel,
+} from "../utils/types";
 
 const SCAN_SESSION_COLLECTION = "scan_sessions" + (!isOnProduction() ? "_tests" : "");
 
@@ -14,9 +18,9 @@ const SCAN_TYPE = {
 	},
 };
 
-export const scanSessionModel = database!.model<TScanSession>(
+export const scanSessionModel = database!.model<TScanSessionModel>(
 	SCAN_SESSION_COLLECTION,
-	new database!.Schema<TScanSession>(
+	new database!.Schema<TScanSessionModel>(
 		{
 			userPop: {
 				type: Schema.Types.ObjectId,
