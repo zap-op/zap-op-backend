@@ -1,10 +1,10 @@
 import { Schema } from "mongoose";
 import { database } from "../services/database.service";
-import { TUser } from "../utils/types";
+import { TUserModel } from "../utils/types";
 
-const USER_COLLECTION = "users" + (process.env.NODE_ENV === "development" ? "_tests" : "");
+export const USER_COLLECTION = "users" + (process.env.NODE_ENV === "development" ? "_tests" : "");
 
-export const userModel = database!.model<TUser>(USER_COLLECTION, new database!.Schema<TUser>(
+export const userModel = database!.model<TUserModel>(USER_COLLECTION, new database!.Schema<TUserModel>(
     {
         sub: {
             type: Schema.Types.String,
