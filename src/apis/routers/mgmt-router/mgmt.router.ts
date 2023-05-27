@@ -96,7 +96,7 @@ export function getMgmtRouter(): Router {
 	mgmtRouter.get("/scanSessions", async (req: JWTRequest, res) => {
 		const scanSessions = await scanSessionModel
 			.find({
-				userId: req.accessToken!.userId,
+				userPop: req.accessToken!.userId,
 			})
 			.exec();
 		res.status(200).json(scanSessions);

@@ -2,7 +2,7 @@ import { database } from "../services/database.service";
 import { Schema } from "mongoose";
 import { TTargetModel } from "../utils/types";
 
-const TARGET_COLLECTION =
+export const TARGET_COLLECTION =
     "targets" + (process.env.NODE_ENV === "development" ? "_tests" : "");
 
 const TARGET_TRASH_COLLECTION =
