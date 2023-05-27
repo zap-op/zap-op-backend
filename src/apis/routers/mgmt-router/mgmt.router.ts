@@ -6,6 +6,7 @@ import { isValidURL } from "../../../utils/validator";
 import { JWTRequest } from "../../../utils/middlewares";
 import { MGMT_STATUS } from "../../../utils/types";
 import { mainProc } from "../../../services/logging.service";
+import { scanSessionModel } from "../../../models/scan-session.model";
 
 export function getMgmtRouter(): Router {
 	const mgmtRouter = express.Router();
@@ -90,6 +91,15 @@ export function getMgmtRouter(): Router {
 			mainProc.error(`Error while deleting target: ${error}`);
 			res.status(500).send(MGMT_STATUS.TARGET_DELETE_FAILED);
 		}
+	});
+
+	mgmtRouter.get("/scanSessions", async (req: JWTRequest, res) => {
+		const scanSessions = await scanSessionModel
+			.find({
+				userId: req.accessToken!.userId,
+			})
+			.exec();
+		res.status(200).json(scanSessions);
 	});
 
 	return mgmtRouter;
