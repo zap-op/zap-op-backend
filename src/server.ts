@@ -15,10 +15,10 @@ import { isOnProduction } from "./utils/validator";
 mainProc.info("Setup process hooks");
 setupProcessHooks();
 
-mainProc.info("Starting ZAP process");
+mainProc.info("Starting shared ZAP process");
 const zapPort = await startZapProcess(ZAP_SESSION_TYPES.SHARED);
-initZapClientShared(zapPort);
-mainProc.info(`ZAP started and listening on port ${zapPort}`);
+await initZapClientShared(zapPort);
+mainProc.info(`Shared ZAP process started and listening on port ${zapPort}`);
 
 mainProc.info("Connecting to DB");
 if (!database) throw Error("Failed to connect DB");

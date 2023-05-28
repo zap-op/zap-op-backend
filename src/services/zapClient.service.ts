@@ -19,8 +19,13 @@ export function initZapClient(port: number): ZapClient {
     });
 }
 
-export function initZapClientShared(port: number): void {
+export async function initZapClientShared(port: number): Promise<void> {
     zapClientShared = initZapClient(port);
+
+    // Disable passive scanners
+    const res = await zapClientShared.pscan.setEnabled("false");
+    if (res.Result !== "OK") 
+        mainProc.error("Failed to disable passive scan of shared ZAP process");
 }
 
 // BEGIN ZAP SPIDER
@@ -102,7 +107,7 @@ export async function spiderFullResults(scanId: string, offset?: TZapSpiderFullR
 const ajaxZapClients: Map<string, ZapClient> = new Map();
 
 export async function ajaxStart(url: string, config: any): Promise<string | undefined> {
-    const client = initZapClient(await startZapProcess(ZAP_SESSION_TYPES.TEMP));
+    const client = initZapClient(await startZapProcess(ZAP_SESSION_TYPES.PRIVATE));
     const clientId = crypto.randomUUID();
     ajaxZapClients.set(clientId, client);
 

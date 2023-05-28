@@ -16,7 +16,7 @@ const ZAP_SESSIONS_DIR = path.join(ZAP_ROOT, "zap-session");
 
 export enum ZAP_SESSION_TYPES {
     SHARED = "shared",
-    TEMP = "temp"
+    PRIVATE = "private"
 }
 
 export function startZapProcess(type: ZAP_SESSION_TYPES, port?: number, relSessionDir?: string): Promise<number> {
@@ -29,7 +29,7 @@ export function startZapProcess(type: ZAP_SESSION_TYPES, port?: number, relSessi
     if (type === ZAP_SESSION_TYPES.SHARED)
         loggerToUse = zapProc;
     else {
-        const customLoggerName = `zapTemp-${crypto.randomUUID()}`
+        const customLoggerName = `zapPrivate-${crypto.randomUUID()}`
         loggerToUse = registerCustomLogger(customLoggerName, [sharedFileTransportOpt(customLoggerName)]);
     }
 
