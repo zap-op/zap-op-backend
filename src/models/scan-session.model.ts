@@ -32,6 +32,20 @@ export const scanSessionModel = database!.model<TScanSessionModel>(
 				ref: TARGET_COLLECTION,
 				required: true,
 			},
+			scanId: {
+				type: Schema.Types.Number,
+				default: -1,
+			},
+			status: {
+				state: {
+					type: Schema.Types.String,
+					default: "",
+				},
+				message: {
+					type: Schema.Types.String,
+					default: "",
+				},
+			},
 		},
 		{
 			timestamps: {

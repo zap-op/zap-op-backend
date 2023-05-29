@@ -9,12 +9,14 @@ import { serializeSSEEvent } from "../../../../../utils/network";
 import { ajaxFullResults, ajaxResults } from "../../../../../services/zapClient.service";
 import { ajaxSharedStatusStream, ajaxStartAndMonitor } from "../../../../../services/zapMonitor.service";
 import {
+	scanSessionModel,
 	targetModel, //
 	zapAjaxScanSessionModel,
 } from "../../../../../models";
 import {
 	MGMT_STATUS, //
 	SCAN_STATUS,
+	ScanState,
 	TUserModel,
 } from "../../../../../utils/types";
 
@@ -70,6 +72,9 @@ export function getZapAjaxRouter(): Router {
 				contextName: body.scanConfig.contextName,
 				subtreeOnly: body.scanConfig.subtreeOnly,
 			},
+			status: {
+				state: ScanState.PROCESSING,
+			},
 		});
 		await scanSession.save().catch((error) => {
 			mainProc.error(`Error while saving ajax scan session: ${error}`);
@@ -84,13 +89,26 @@ export function getZapAjaxRouter(): Router {
 			return res.status(500).send(SCAN_STATUS.SESSION_INITIALIZE_FAIL);
 		});
 		if (!zapClientId) {
+			scanSession
+				.set("status", {
+					state: ScanState.FAILED,
+					message: "Error while starting scan.",
+				})
+				.save()
+				.catch((error) => {
+					mainProc.error(`Error while update scan state to session: ${error}`);
+				});
 			return res.status(500).send(SCAN_STATUS.ZAP_INITIALIZE_FAIL);
 		}
 
-		return res.status(201).send({
-			scanSession: scanSession._id,
-			zapClientId,
-		});
+		await scanSession
+			.set("scanId", zapClientId)
+			.save()
+			.catch((error) => {
+				mainProc.error(`Error while update scan ID to session: ${error}`);
+			});
+
+		return res.status(201).send(SCAN_STATUS.SESSION_INITIALIZE_SUCCEED);
 	});
 
 	zapAjaxRouter.get("/", async (req: JWTRequest, res) => {
