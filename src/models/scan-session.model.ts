@@ -4,19 +4,13 @@ import { isOnProduction } from "../utils/validator";
 import { TARGET_COLLECTION } from "./target.model";
 import { USER_COLLECTION } from "./user.model";
 import {
+	ScanType,
 	TScanSessionModel, //
 	TZapAjaxScanSessionModel,
 	TZapSpiderScanSessionModel,
 } from "../utils/types";
 
 const SCAN_SESSION_COLLECTION = "scan_sessions" + (!isOnProduction() ? "_tests" : "");
-
-const SCAN_TYPE = {
-	ZAP: {
-		SPIDER: "ZAP_SPIDER_SCAN",
-		AJAX: "ZAP_AJAX_SCAN",
-	},
-};
 
 export const scanSessionModel = database!.model<TScanSessionModel>(
 	SCAN_SESSION_COLLECTION,
@@ -57,7 +51,7 @@ export const scanSessionModel = database!.model<TScanSessionModel>(
 );
 
 export const zapSpiderScanSessionModel = scanSessionModel.discriminator<TZapSpiderScanSessionModel>(
-	SCAN_TYPE.ZAP.SPIDER,
+	ScanType.ZAP_SPIDER,
 	new database!.Schema<TZapSpiderScanSessionModel>({
 		scanConfig: {
 			maxChildren: {
@@ -82,7 +76,7 @@ export const zapSpiderScanSessionModel = scanSessionModel.discriminator<TZapSpid
 );
 
 export const zapAjaxScanSessionModel = scanSessionModel.discriminator<TZapAjaxScanSessionModel>(
-	SCAN_TYPE.ZAP.AJAX,
+	ScanType.ZAP_AJAX,
 	new database!.Schema<TZapAjaxScanSessionModel>({
 		scanConfig: {
 			inScope: {
