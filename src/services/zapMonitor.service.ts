@@ -14,6 +14,8 @@ import { mainProc } from "./logging.service";
 import { genSHA512 } from "../utils/crypto";
 import { ObjectId } from "bson";
 import { zapAjaxScanFullResultsModel, zapSpiderScanFullResultsModel } from "../models/scan-fullresults.model";
+import { scanSessionModel } from "../models";
+import { ScanState } from "../utils/types";
 
 type TMonitorSessionId = {
     scanId: string;
@@ -54,10 +56,23 @@ export async function spiderStartAndMonitor(sessionId: ObjectId, url: string, co
         }),
         emitDistinct ? distinctUntilChanged((prev, cur) => prev.status === cur.status) : identity,
         finalize(async () => {
+            console.log("curStatus", curStatus);
             if (curStatus === "100") {
                 const fullResults = await spiderFullResults(scanId);
-                if (!fullResults)
+                if (!fullResults) {
+                    await scanSessionModel
+                    .findByIdAndUpdate(sessionId, {
+                        status: {
+                            state: ScanState.FAILED,
+                            message: "Failed to get spider full results.",
+                        },
+                    })
+                    .exec()
+                    .catch((error) => {
+                        mainProc.error(`Error while update scan state to session: ${error}`);
+                    });
                     mainProc.error(`Failed to get spider full results with id: ${scanId}`);
+                }
                 else {
                     const fullResultsDoc = new zapSpiderScanFullResultsModel({
                         sessionId,
@@ -70,6 +85,16 @@ export async function spiderStartAndMonitor(sessionId: ObjectId, url: string, co
                     await fullResultsDoc.save().catch(error => {
                         mainProc.error(`Error while saving spider full results: ${error}`);
                     });
+                    await scanSessionModel
+                        .findByIdAndUpdate(sessionId, {
+                            status: {
+                                state: ScanState.SUCCESSFUL,
+                            },
+                        })
+                        .exec()
+                        .catch((error) => {
+                            mainProc.error(`Error while update scan state to session: ${error}`);
+                        });
                 }
             }
             await spiderStop(scanId, removeOnDone);
@@ -134,8 +159,20 @@ export async function ajaxStartAndMonitor(sessionId: ObjectId, url: string, conf
         finalize(async () => {
             if (curStatus === "stopped") {
                 const fullResults = await ajaxFullResults(clientId);
-                if (!fullResults)
+                if (!fullResults) {
+                    await scanSessionModel
+                        .findByIdAndUpdate(sessionId, {
+                            status: {
+                                state: ScanState.FAILED,
+                                message: "Failed to get ajax full results.",
+                            },
+                        })
+                        .exec()
+                        .catch((error) => {
+                            mainProc.error(`Error while update scan state to session: ${error}`);
+                        });
                     mainProc.error(`Failed to get ajax full results with id: ${clientId}`);
+                }
                 else {
                     const fullResultsDoc = new zapAjaxScanFullResultsModel({
                         sessionId,
@@ -148,6 +185,16 @@ export async function ajaxStartAndMonitor(sessionId: ObjectId, url: string, conf
                     await fullResultsDoc.save().catch(error => {
                         mainProc.error(`Error while saving ajax full results: ${error}`);
                     });
+                    await scanSessionModel
+                        .findByIdAndUpdate(sessionId, {
+                            status: {
+                                state: ScanState.SUCCESSFUL,
+                            },
+                        })
+                        .exec()
+                        .catch((error) => {
+                            mainProc.error(`Error while update scan state to session: ${error}`);
+                        });
                 }
             }
             await ajaxStop(clientId);
