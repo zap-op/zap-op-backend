@@ -86,7 +86,6 @@ export function getZapAjaxRouter(): Router {
 
 		const zapClientId = await ajaxStartAndMonitor(scanSession._id, url, scanSession.scanConfig, emitDistinct).catch((error) => {
 			mainProc.error(`Error while starting ajax: ${error}`);
-			return res.status(500).send(SCAN_STATUS.SESSION_INITIALIZE_FAIL);
 		});
 		if (!zapClientId) {
 			scanSession

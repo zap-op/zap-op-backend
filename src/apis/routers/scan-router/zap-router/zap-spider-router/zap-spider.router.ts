@@ -98,7 +98,6 @@ export function getZapSpiderRouter(): Router {
 
 		const scanId = await spiderStartAndMonitor(scanSession._id, url, scanSession.scanConfig, emitDistinct, removeOnDone).catch((error: any) => {
 			mainProc.error(`Error while starting spider: ${error}`);
-			return res.status(500).send(SCAN_STATUS.SESSION_INITIALIZE_FAIL);
 		});
 		if (!scanId) {
 			scanSession
