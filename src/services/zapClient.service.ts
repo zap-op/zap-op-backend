@@ -205,7 +205,11 @@ export async function ajaxResults(clientId: string, offset?: number): Promise<an
 }
 
 export async function ajaxFullResults(clientId: string, offset?: TZapAjaxFullResultsConfig)
-    : Promise<[{ inScope: any[] }, { outOfScope: any[] }, { errors: any[] }] | undefined> {
+    : Promise<{ 
+        inScope: any[],
+        outOfScope: any[],
+        errors: any[] 
+    } | undefined> {
     if (!ajaxZapClients.has(clientId)) {
         mainProc.error(`Get ajax full result with wrong id: ${clientId}`);
         return undefined;

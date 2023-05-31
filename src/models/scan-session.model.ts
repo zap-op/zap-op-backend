@@ -27,8 +27,8 @@ export const scanSessionModel = database!.model<TScanSessionModel>(
 				required: true,
 			},
 			scanId: {
-				type: Schema.Types.Number,
-				default: -1,
+				type: Schema.Types.String,
+				default: "",
 			},
 			status: {
 				state: {
