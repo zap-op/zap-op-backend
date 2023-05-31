@@ -5,6 +5,7 @@ import { mainProc } from "./logging.service";
 import { TZapAjaxFullResultsConfig, TZapSpiderFullResultsParams } from "../submodules/utility/api";
 import { startZapProcess, ZAP_SESSION_TYPES } from "../utils/zapProcess";
 import crypto from "crypto";
+import { zapGetAvailablePort } from "./zapMonitor.service";
 
 const ZAP_POLL_DELAY = 5000;
 const ZAP_POLL_INTERVAL = 5000;
@@ -107,7 +108,9 @@ export async function spiderFullResults(scanId: string, offset?: TZapSpiderFullR
 const ajaxZapClients: Map<string, ZapClient> = new Map();
 
 export async function ajaxStart(url: string, config: any): Promise<string | undefined> {
-    const client = initZapClient(await startZapProcess(ZAP_SESSION_TYPES.PRIVATE));
+    const port = zapGetAvailablePort();
+    await startZapProcess(ZAP_SESSION_TYPES.PRIVATE, port);
+    const client = initZapClient(port);
     const clientId = crypto.randomUUID();
     ajaxZapClients.set(clientId, client);
 
