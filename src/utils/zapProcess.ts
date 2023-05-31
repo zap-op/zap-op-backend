@@ -5,6 +5,7 @@ import os from "os";
 import { endCustomLogger, mainProc, registerCustomLogger, sharedFileTransportOpt, zapProc } from "../services/logging.service";
 import winston from "winston";
 import crypto from "crypto";
+import { zapReturnUsedPort } from "../services/zapMonitor.service";
 
 if (!process.env.ZAP_APIKEY)
     throw "ZAP_APIKEY not found";
@@ -19,11 +20,9 @@ export enum ZAP_SESSION_TYPES {
     PRIVATE = "private"
 }
 
-export function startZapProcess(type: ZAP_SESSION_TYPES, port?: number, relSessionDir?: string): Promise<number> {
+export function startZapProcess(type: ZAP_SESSION_TYPES, port: number, relSessionDir?: string): Promise<void> {
     const sessionDir = path.join(ZAP_SESSIONS_DIR, type, relSessionDir ?? Date.now().toString());
-    const zapOptions = ZAP_OPTS.concat("-newsession", path.join(sessionDir, "data"));
-    if (port)
-        zapOptions.push("-port", port.toString());
+    const zapOptions = ZAP_OPTS.concat("-port", port.toString(), "-newsession", path.join(sessionDir, "data"));
 
     let loggerToUse: winston.Logger;
     if (type === ZAP_SESSION_TYPES.SHARED)
@@ -35,13 +34,11 @@ export function startZapProcess(type: ZAP_SESSION_TYPES, port?: number, relSessi
 
     const proc = spawn(ZAP_EXE, zapOptions);
 
-    return new Promise<number>((resolve, reject) => {
+    return new Promise<void>((resolve, reject) => {
         proc.stdout.on("data", (data) => {
             loggerToUse.info(data);
-            if (data.toString().includes("ZAP is now listening on")) {
-                const port = parseInt(data.toString().split(":").pop());
-                resolve(port);
-            }
+            if (data.toString().includes("ZAP is now listening on"))
+                resolve();
         });
 
         proc.stderr.on("data", (data) => {
@@ -52,6 +49,8 @@ export function startZapProcess(type: ZAP_SESSION_TYPES, port?: number, relSessi
             const msg = `ZAP ${type} process exited with code ${code}`;
             mainProc.info(msg);
             reject(msg);
+
+            zapReturnUsedPort(port);
             endCustomLogger(loggerToUse);
         });
 
@@ -59,6 +58,8 @@ export function startZapProcess(type: ZAP_SESSION_TYPES, port?: number, relSessi
             const msg = `ZAP ${type} process encounter error: ${err}`;
             mainProc.error(msg);
             reject(msg);
+
+            zapReturnUsedPort(port);
             endCustomLogger(loggerToUse);
         });
     })

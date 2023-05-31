@@ -182,3 +182,21 @@ export function ajaxSignalStop(clientId: string): void {
     monitoringSessions.get(monitorHash)!.stopSignal$.next(true);
 }
 // END ZAP AJAX
+
+// BEGIN UTILS
+const reusableZapPorts: Set<number> = new Set();
+let curAvailablePort = 8080;
+
+export function zapGetAvailablePort(): number {
+    const port: number | undefined = reusableZapPorts.values().next().value;
+    if (port) {
+        reusableZapPorts.delete(port);
+        return port;
+    }
+    return curAvailablePort++;
+}
+
+export function zapReturnUsedPort(port: number): void {
+    reusableZapPorts.add(port);
+}
+// END UTILS

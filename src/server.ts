@@ -11,12 +11,14 @@ import { database } from "./services/database.service";
 import { AddressInfo } from "net";
 import { initZapClientShared } from "./services/zapClient.service";
 import { isOnProduction } from "./utils/validator";
+import { zapGetAvailablePort } from "./services/zapMonitor.service";
 
 mainProc.info("Setup process hooks");
 setupProcessHooks();
 
 mainProc.info("Starting shared ZAP process");
-const zapPort = await startZapProcess(ZAP_SESSION_TYPES.SHARED);
+const zapPort = zapGetAvailablePort();
+await startZapProcess(ZAP_SESSION_TYPES.SHARED, zapPort);
 await initZapClientShared(zapPort);
 mainProc.info(`Shared ZAP process started and listening on port ${zapPort}`);
 
