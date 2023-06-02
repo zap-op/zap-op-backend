@@ -117,7 +117,7 @@ export function getZapAjaxRouter(): Router {
 		}
 
 		const zapClientId = req.query.zapClientId;
-		if (typeof zapClientId !== "string" || isNaN(parseInt(zapClientId))) {
+		if (typeof zapClientId !== "string" || zapClientId.length === 0) {
 			return res.status(400).send(SCAN_STATUS.INVALID_ID);
 		}
 
