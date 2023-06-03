@@ -88,10 +88,7 @@ export function getZapSpiderRouter(): Router {
 				state: ScanState.PROCESSING,
 			},
 		});
-		await scanSession.save().catch((error) => {
-			mainProc.error(`Error while saving spider scan session: ${error}`);
-			return res.status(500).send(SCAN_STATUS.SESSION_INITIALIZE_FAIL);
-		});
+
 		// emitDistinct and removeOnDone are default to true
 		const emitDistinct = req.query.emitDistinct !== "false";
 		const removeOnDone = req.query.removeOnDone !== "false";
@@ -112,12 +109,12 @@ export function getZapSpiderRouter(): Router {
 			return res.status(500).send(SCAN_STATUS.ZAP_INITIALIZE_FAIL);
 		}
 
-		await scanSession
-			.set("scanId", scanId)
-			.save()
-			.catch((error) => {
-				mainProc.error(`Error while update scan ID to session: ${error}`);
-			});
+		try {
+			await scanSession.set("scanId", scanId).save();
+		} catch (error) {
+			mainProc.error(`Error while saving spider scan session: ${error}`);
+			return res.status(500).send(SCAN_STATUS.SESSION_INITIALIZE_FAIL);
+		}
 
 		return res.status(201).send(SCAN_STATUS.SESSION_INITIALIZE_SUCCEED);
 	});
