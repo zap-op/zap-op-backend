@@ -15,7 +15,7 @@ import { genSHA512 } from "../utils/crypto";
 import { ObjectId } from "bson";
 import { zapAjaxScanFullResultsModel, zapSpiderScanFullResultsModel } from "../models/scan-fullresults.model";
 import { scanSessionModel } from "../models";
-import { ScanState } from "../utils/types";
+import { ScanState, TZapAjaxStreamStatus } from "../utils/types";
 
 type TMonitorSessionId = {
     scanId: string;
@@ -25,7 +25,7 @@ type TMonitorSessionId = {
 type TMonitorSessionIdHash = string;
 
 const monitoringSessions: Map<TMonitorSessionIdHash, {
-    status$: Connectable<{ status: string | "running" | "stopped" }>,
+    status$: Connectable<{ status: string | TZapAjaxStreamStatus }>,
     stopSignal$: Subject<boolean>,
 }> = new Map();
 
@@ -144,7 +144,7 @@ export async function ajaxStartAndMonitor(sessionId: ObjectId, url: string, conf
 
     const stopSignal$ = new Subject<boolean>();
     let done = false;
-    let curStatus: "running" | "stopped" = "running";
+    let curStatus: TZapAjaxStreamStatus = "running";
 
     const status$ = connectable(ajaxStatusStream(clientId)!.pipe(
         takeUntil(stopSignal$),
@@ -177,9 +177,9 @@ export async function ajaxStartAndMonitor(sessionId: ObjectId, url: string, conf
                     const fullResultsDoc = new zapAjaxScanFullResultsModel({
                         sessionId,
                         fullResults: {
-                            urlsInScope: fullResults[0].inScope,
-                            urlsOutOfScope: fullResults[1].outOfScope,
-                            urlsError: fullResults[2].errors,
+                            urlsInScope: fullResults.inScope,
+                            urlsOutOfScope: fullResults.outOfScope,
+                            urlsError: fullResults.errors,
                         }
                     });
                     await fullResultsDoc.save().catch(error => {
@@ -212,9 +212,9 @@ export async function ajaxStartAndMonitor(sessionId: ObjectId, url: string, conf
     return clientId;
 }
 
-export function ajaxSharedStatusStream(clientId: string): Connectable<{ status: "running" | "stopped" }> | undefined {
+export function ajaxSharedStatusStream(clientId: string): Connectable<{ status: TZapAjaxStreamStatus }> | undefined {
     const monitorId: TMonitorSessionId = { scanId: clientId, isAjax: true };
-    return monitoringSessions.get(genSHA512(monitorId))?.status$ as Connectable<{ status: "running" | "stopped" }>;
+    return monitoringSessions.get(genSHA512(monitorId))?.status$ as Connectable<{ status: TZapAjaxStreamStatus }>;
 }
 
 export function ajaxSignalStop(clientId: string): void {

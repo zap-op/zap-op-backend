@@ -6,6 +6,7 @@ import { TZapAjaxFullResultsConfig, TZapSpiderFullResultsParams } from "../submo
 import { startZapProcess, ZAP_SESSION_TYPES } from "../utils/zapProcess";
 import crypto from "crypto";
 import { zapGetAvailablePort } from "./zapMonitor.service";
+import { TZapAjaxStreamStatus } from "../utils/types";
 
 const ZAP_POLL_DELAY = 5000;
 const ZAP_POLL_INTERVAL = 5000;
@@ -165,7 +166,7 @@ export async function ajaxStop(clientId: string): Promise<void> {
     }
 }
 
-export function ajaxStatusStream(clientId: string): Observable<{status: "stopped" | "running"}> | undefined {
+export function ajaxStatusStream(clientId: string): Observable<{status: TZapAjaxStreamStatus}> | undefined {
     if (!ajaxZapClients.has(clientId)) {
         mainProc.warn(`Get ajax status with wrong id: ${clientId}`);
         return undefined;
@@ -174,7 +175,7 @@ export function ajaxStatusStream(clientId: string): Observable<{status: "stopped
     const client: ZapClient = ajaxZapClients.get(clientId);
 
     return timer(ZAP_POLL_DELAY, ZAP_POLL_INTERVAL).pipe(
-        switchMap(_ => from(client.ajaxSpider.status()) as Observable<{status: "stopped" | "running"}>),
+        switchMap(_ => from(client.ajaxSpider.status()) as Observable<{status: TZapAjaxStreamStatus}>),
         retry(ZAP_POLL_MAX_RETRY),
         catchError(err => {
             throw `ZapClient: ${client}\nError while polling zap ajax status: ${err}`
@@ -205,7 +206,11 @@ export async function ajaxResults(clientId: string, offset?: number): Promise<an
 }
 
 export async function ajaxFullResults(clientId: string, offset?: TZapAjaxFullResultsConfig)
-    : Promise<[{ inScope: any[] }, { outOfScope: any[] }, { errors: any[] }] | undefined> {
+    : Promise<{ 
+        inScope: any[],
+        outOfScope: any[],
+        errors: any[] 
+    } | undefined> {
     if (!ajaxZapClients.has(clientId)) {
         mainProc.error(`Get ajax full result with wrong id: ${clientId}`);
         return undefined;

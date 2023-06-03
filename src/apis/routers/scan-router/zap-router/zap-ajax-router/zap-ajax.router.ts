@@ -76,17 +76,12 @@ export function getZapAjaxRouter(): Router {
 				state: ScanState.PROCESSING,
 			},
 		});
-		await scanSession.save().catch((error) => {
-			mainProc.error(`Error while saving ajax scan session: ${error}`);
-			return res.status(500).send(SCAN_STATUS.SESSION_INITIALIZE_FAIL);
-		});
 
 		// emitDistinct is default to true
 		const emitDistinct = req.query.emitDistinct !== "false";
 
 		const zapClientId = await ajaxStartAndMonitor(scanSession._id, url, scanSession.scanConfig, emitDistinct).catch((error) => {
 			mainProc.error(`Error while starting ajax: ${error}`);
-			return res.status(500).send(SCAN_STATUS.SESSION_INITIALIZE_FAIL);
 		});
 		if (!zapClientId) {
 			scanSession
@@ -101,13 +96,12 @@ export function getZapAjaxRouter(): Router {
 			return res.status(500).send(SCAN_STATUS.ZAP_INITIALIZE_FAIL);
 		}
 
-		await scanSession
-			.set("scanId", zapClientId)
-			.save()
-			.catch((error) => {
-				mainProc.error(`Error while update scan ID to session: ${error}`);
-			});
-
+		try {
+			await scanSession.set("scanId", zapClientId).save();
+		} catch (error) {
+			mainProc.error(`Error while saving ajax scan session: ${error}`);
+			return res.status(500).send(SCAN_STATUS.SESSION_INITIALIZE_FAIL);
+		}
 		return res.status(201).send(SCAN_STATUS.SESSION_INITIALIZE_SUCCEED);
 	});
 
@@ -118,7 +112,7 @@ export function getZapAjaxRouter(): Router {
 		}
 
 		const zapClientId = req.query.zapClientId;
-		if (typeof zapClientId !== "string" || isNaN(parseInt(zapClientId))) {
+		if (typeof zapClientId !== "string" || zapClientId.length === 0) {
 			return res.status(400).send(SCAN_STATUS.INVALID_ID);
 		}
 
