@@ -38,9 +38,13 @@ export function getMgmtRouter(): Router {
 	};
 
 	mgmtRouter.get("/targets", async (req: JWTRequest, res) => {
-		const targets = await targetModel.find({
-			userId: req.accessToken!.userId,
-		});
+		const targets = await targetModel
+			.find({
+				userId: req.accessToken!.userId,
+			})
+			.sort({
+				updatedAt: -1,
+			});
 		res.status(200).json(targets);
 	});
 
@@ -104,7 +108,12 @@ export function getMgmtRouter(): Router {
 			.find({
 				userPop: req.accessToken!.userId,
 			})
-			.populate<{ targetPop: TTargetModel }>("targetPop", "name target")
+			.populate<{
+				targetPop: TTargetModel;
+			}>("targetPop", "name target")
+			.sort({
+				updatedAt: -1,
+			})
 			.exec();
 		res.status(200).json(scanSessions);
 	});
