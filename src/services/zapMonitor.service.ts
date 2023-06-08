@@ -148,55 +148,56 @@ export async function ajaxStartAndMonitor(sessionId: ObjectId, url: string, conf
 
     const status$ = connectable(ajaxStatusStream(clientId)!.pipe(
         takeUntil(stopSignal$),
-        tap(val => {
+        tap(async (val) => {
             curStatus = val.status;
             if (val.status === "stopped") {
                 if (!done) done = true;
-                else stopSignal$.next(true);
+                else {
+                    const fullResults = await ajaxFullResults(clientId);
+                    if (!fullResults) {
+                        await scanSessionModel
+                            .findByIdAndUpdate(sessionId, {
+                                status: {
+                                    state: ScanState.FAILED,
+                                    message: "Failed to get ajax full results.",
+                                },
+                            })
+                            .exec()
+                            .catch((error) => {
+                                mainProc.error(`Error while update scan state to session: ${error}`);
+                            });
+                        mainProc.error(`Failed to get ajax full results with id: ${clientId}`);
+                    }
+                    else {
+                        const fullResultsDoc = new zapAjaxScanFullResultsModel({
+                            sessionId,
+                            fullResults: {
+                                urlsInScope: fullResults.inScope,
+                                urlsOutOfScope: fullResults.outOfScope,
+                                urlsError: fullResults.errors,
+                            }
+                        });
+                        await fullResultsDoc.save().catch(error => {
+                            mainProc.error(`Error while saving ajax full results: ${error}`);
+                        });
+                        await scanSessionModel
+                            .findByIdAndUpdate(sessionId, {
+                                status: {
+                                    state: ScanState.SUCCESSFUL,
+                                },
+                            })
+                            .exec()
+                            .catch((error) => {
+                                mainProc.error(`Error while update scan state to session: ${error}`);
+                            });
+                    }
+
+                    stopSignal$.next(true);
+                }
             }
         }),
         emitDistinct ? distinctUntilChanged((prev, cur) => prev.status === cur.status) : identity,
         finalize(async () => {
-            if (curStatus === "stopped") {
-                const fullResults = await ajaxFullResults(clientId);
-                if (!fullResults) {
-                    await scanSessionModel
-                        .findByIdAndUpdate(sessionId, {
-                            status: {
-                                state: ScanState.FAILED,
-                                message: "Failed to get ajax full results.",
-                            },
-                        })
-                        .exec()
-                        .catch((error) => {
-                            mainProc.error(`Error while update scan state to session: ${error}`);
-                        });
-                    mainProc.error(`Failed to get ajax full results with id: ${clientId}`);
-                }
-                else {
-                    const fullResultsDoc = new zapAjaxScanFullResultsModel({
-                        sessionId,
-                        fullResults: {
-                            urlsInScope: fullResults.inScope,
-                            urlsOutOfScope: fullResults.outOfScope,
-                            urlsError: fullResults.errors,
-                        }
-                    });
-                    await fullResultsDoc.save().catch(error => {
-                        mainProc.error(`Error while saving ajax full results: ${error}`);
-                    });
-                    await scanSessionModel
-                        .findByIdAndUpdate(sessionId, {
-                            status: {
-                                state: ScanState.SUCCESSFUL,
-                            },
-                        })
-                        .exec()
-                        .catch((error) => {
-                            mainProc.error(`Error while update scan state to session: ${error}`);
-                        });
-                }
-            }
             await ajaxStop(clientId);
             monitoringSessions.delete(monitorHash);
         })
