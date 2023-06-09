@@ -47,62 +47,61 @@ export async function spiderStartAndMonitor(sessionId: ObjectId, url: string, co
 
     const status$ = connectable(spiderStatusStream(scanId).pipe(
         takeUntil(stopSignal$),
-        tap(val => {
+        tap(async (val) => {
             curStatus = val.status;
             if (parseInt(val.status) === 100) {
                 if (!done) done = true;
-                else stopSignal$.next(true);
-            }
-        }),
-        emitDistinct ? distinctUntilChanged((prev, cur) => prev.status === cur.status) : identity,
-        finalize(async () => {
-            console.log("curStatus", curStatus);
-            if (curStatus === "100") {
-                const fullResults = await spiderFullResults(scanId);
-                if (!fullResults) {
-                    await scanSessionModel
-                    .findByIdAndUpdate(sessionId, {
-                        status: {
-                            state: ScanState.FAILED,
-                            message: "Failed to get spider full results.",
-                        },
-                    })
-                    .exec()
-                    .catch((error) => {
-                        mainProc.error(`Error while update scan state to session: ${error}`);
-                    });
-                    mainProc.error(`Failed to get spider full results with id: ${scanId}`);
-                }
                 else {
-                    const fullResultsDoc = new zapSpiderScanFullResultsModel({
-                        sessionId,
-                        fullResults: {
-                            urlsInScope: fullResults[0].urlsInScope,
-                            urlsOutOfScope: fullResults[1].urlsOutOfScope,
-                            urlsError: fullResults[2].urlsIoError,
-                        }
-                    });
-                    await fullResultsDoc.save().catch(error => {
-                        mainProc.error(`Error while saving spider full results: ${error}`);
-                    });
-                    await scanSessionModel
+                    const fullResults = await spiderFullResults(scanId);
+                    if (!fullResults) {
+                        await scanSessionModel
                         .findByIdAndUpdate(sessionId, {
                             status: {
-                                state: ScanState.SUCCESSFUL,
+                                state: ScanState.FAILED,
+                                message: "Failed to get spider full results.",
                             },
                         })
                         .exec()
                         .catch((error) => {
                             mainProc.error(`Error while update scan state to session: ${error}`);
                         });
-                }
+                        mainProc.error(`Failed to get spider full results with id: ${scanId}`);
+                    }
+                    else {
+                        const fullResultsDoc = new zapSpiderScanFullResultsModel({
+                            sessionId,
+                            fullResults: {
+                                urlsInScope: fullResults[0].urlsInScope,
+                                urlsOutOfScope: fullResults[1].urlsOutOfScope,
+                                urlsError: fullResults[2].urlsIoError,
+                            }
+                        });
+                        await fullResultsDoc.save().catch(error => {
+                            mainProc.error(`Error while saving spider full results: ${error}`);
+                        });
+                        await scanSessionModel
+                            .findByIdAndUpdate(sessionId, {
+                                status: {
+                                    state: ScanState.SUCCESSFUL,
+                                },
+                            })
+                            .exec()
+                            .catch((error) => {
+                                mainProc.error(`Error while update scan state to session: ${error}`);
+                            });
+                    }
+                    stopSignal$.next(true);
+                } 
             }
+        }),
+        distinctUntilChanged((prev, cur) => prev.status === cur.status),
+        finalize(async () => {
             await spiderStop(scanId, removeOnDone);
             monitoringSessions.delete(monitorHash);
         })
     ), {
         connector: () => new BehaviorSubject({ status: "0" }),
-        resetOnDisconnect: false
+        resetOnDisconnect: false,
     });
 
     monitoringSessions.set(monitorHash, { status$, stopSignal$ });
