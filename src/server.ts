@@ -34,10 +34,12 @@ app.use(express.json());
 app.use(cookieParser());
 
 if (process.env.PROTOCOL && process.env.CORS_ORIGIN)
-	app.use(cors({
-		origin: `${process.env.PROTOCOL}://${process.env.CORS_ORIGIN}`,
-		credentials: true,
-	}));
+	app.use(
+		cors({
+			origin: `${process.env.PROTOCOL}://${process.env.CORS_ORIGIN}`,
+			credentials: true,
+		}),
+	);
 
 if (!isOnProduction())
 	app.use((req, res, next) => {

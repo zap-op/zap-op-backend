@@ -20,8 +20,7 @@ export async function isValidURL(urlString: string): Promise<boolean> {
 	);
 }
 
-if (!process.env.GOOGLE_CLIENT_ID) 
-	throw "GOOGLE_CLIENT_ID not found";
+if (!process.env.GOOGLE_CLIENT_ID) throw "GOOGLE_CLIENT_ID not found";
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 

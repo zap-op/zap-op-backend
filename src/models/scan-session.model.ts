@@ -3,12 +3,7 @@ import { database } from "../services/database.service";
 import { isOnProduction } from "../utils/validator";
 import { TARGET_COLLECTION } from "./target.model";
 import { USER_COLLECTION } from "./user.model";
-import {
-	ScanType,
-	TScanSessionModel, //
-	TZapAjaxScanSessionModel,
-	TZapSpiderScanSessionModel,
-} from "../utils/types";
+import { ScanType, TScanSessionModel, TZapActiveScanSessionModel, TZapAjaxScanSessionModel, TZapPassiveScanSessionModel, TZapSpiderScanSessionModel } from "../utils/types";
 
 const SCAN_SESSION_COLLECTION = "scan_sessions" + (!isOnProduction() ? "_tests" : "");
 
@@ -26,10 +21,6 @@ export const scanSessionModel = database!.model<TScanSessionModel>(
 				ref: TARGET_COLLECTION,
 				required: true,
 			},
-			scanId: {
-				type: Schema.Types.String,
-				default: "",
-			},
 			status: {
 				state: {
 					type: Schema.Types.String,
@@ -39,6 +30,14 @@ export const scanSessionModel = database!.model<TScanSessionModel>(
 					type: Schema.Types.String,
 					default: "",
 				},
+			},
+			zapClientId: {
+				type: Schema.Types.String,
+				default: "",
+			},
+			zapScanId: {
+				type: Schema.Types.String,
+				default: "",
 			},
 		},
 		{
@@ -90,6 +89,118 @@ export const zapAjaxScanSessionModel = scanSessionModel.discriminator<TZapAjaxSc
 			subtreeOnly: {
 				type: Schema.Types.Boolean,
 				default: false,
+			},
+		},
+	}),
+);
+
+export const zapPassiveScanSessionModel = scanSessionModel.discriminator<TZapPassiveScanSessionModel>(
+	ScanType.ZAP_PASSIVE,
+	new database!.Schema<TZapPassiveScanSessionModel>({
+		exploreType: {
+			type: Schema.Types.String,
+			required: true,
+		},
+		spiderConfig: {
+			maxChildren: {
+				type: Schema.Types.Number,
+				min: 0,
+				default: 1,
+			},
+			recurse: {
+				type: Schema.Types.Boolean,
+				default: true,
+			},
+			contextName: {
+				type: Schema.Types.String,
+				default: "",
+			},
+			subtreeOnly: {
+				type: Schema.Types.Boolean,
+				default: false,
+			},
+		},
+		ajaxConfig: {
+			inScope: {
+				type: Schema.Types.Boolean,
+				default: false,
+			},
+			contextName: {
+				type: Schema.Types.String,
+				default: "",
+			},
+			subtreeOnly: {
+				type: Schema.Types.Boolean,
+				default: false,
+			},
+		},
+	}),
+);
+
+export const zapActiveScanSessionModel = scanSessionModel.discriminator<TZapActiveScanSessionModel>(
+	ScanType.ZAP_ACTIVE,
+	new database!.Schema<TZapActiveScanSessionModel>({
+		exploreType: {
+			type: Schema.Types.String,
+			required: true,
+		},
+		spiderConfig: {
+			maxChildren: {
+				type: Schema.Types.Number,
+				min: 0,
+				default: 1,
+			},
+			recurse: {
+				type: Schema.Types.Boolean,
+				default: true,
+			},
+			contextName: {
+				type: Schema.Types.String,
+				default: "",
+			},
+			subtreeOnly: {
+				type: Schema.Types.Boolean,
+				default: false,
+			},
+		},
+		ajaxConfig: {
+			inScope: {
+				type: Schema.Types.Boolean,
+				default: false,
+			},
+			contextName: {
+				type: Schema.Types.String,
+				default: "",
+			},
+			subtreeOnly: {
+				type: Schema.Types.Boolean,
+				default: false,
+			},
+		},
+		scanConfig: {
+			recurse: {
+				type: Schema.Types.Boolean,
+				default: true,
+			},
+			inScopeOnly: {
+				type: Schema.Types.Boolean,
+				default: false,
+			},
+			scanPolicyName: {
+				type: Schema.Types.String,
+				default: "",
+			},
+			method: {
+				type: Schema.Types.String,
+				default: "",
+			},
+			postData: {
+				type: Schema.Types.String,
+				default: "",
+			},
+			contextId: {
+				type: Schema.Types.String,
+				default: "",
 			},
 		},
 	}),
