@@ -61,7 +61,7 @@ winston.loggers.add(
 winston.loggers.add(
 	INTERNAL_LOG_TYPES.ZAP_PROC,
 	Object.assign({}, sharedLoggerOpt(INTERNAL_LOG_TYPES.ZAP_PROC), {
-		transports: [sharedFileTransportOpt(INTERNAL_LOG_TYPES.ZAP_PROC), new winston.transports.Console({ format: winston.format.cli(), level: "error" })],
+		transports: [sharedFileTransportOpt(INTERNAL_LOG_TYPES.ZAP_PROC)],
 	}),
 );
 

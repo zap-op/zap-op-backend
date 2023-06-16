@@ -3,8 +3,8 @@ import { isValidURL } from "../../../../utils/validator";
 import { SCAN_STATUS } from "../../../../utils/types";
 import { serializeSSEEvent } from "../../../../utils/network";
 import { mainProc, userSession } from "../../../../services/logging.service";
-import { sharedClientId, spiderResults, spiderStart, spiderStop } from "../../../../services/zapClient.service";
-import { spiderSharedStatusStream } from "../../../../services/zapMonitor.service";
+import { sharedClientId, spiderResults } from "../../../../services/zapClient.service";
+import { spiderSharedStatusStream, spiderSignalStop, spiderStartAndMonitor } from "../../../../services/zapMonitor.service";
 
 export function getTrialRouter(): Router {
 	const trialRouter = Router();
@@ -22,17 +22,23 @@ export function getTrialRouter(): Router {
 		if (typeof urlToScan !== "string" || !(await isValidURL(urlToScan))) return res.write(serializeSSEEvent("error", SCAN_STATUS.INVAVLID_URL));
 
 		try {
-			const startResult = await spiderStart(sharedClientId, urlToScan, {
-				maxChildren: 5,
-				recurse: true,
-				contextName: "",
-				subtreeOnly: false,
-			});
-			if (!startResult) return res.write(serializeSSEEvent("error", SCAN_STATUS.ZAP_INITIALIZE_FAIL));
+			const scanId = await spiderStartAndMonitor(
+				null,
+				urlToScan,
+				{
+					maxChildren: 5,
+					recurse: true,
+					contextName: "",
+					subtreeOnly: false,
+				},
+				true,
+				true,
+			);
+			if (!scanId) return res.write(serializeSSEEvent("error", SCAN_STATUS.ZAP_INITIALIZE_FAIL));
 
-			res.write(serializeSSEEvent("id", { id: startResult.scanId }));
+			res.write(serializeSSEEvent("id", { id: scanId }));
 
-			const status$ = spiderSharedStatusStream(startResult.scanId);
+			const status$ = spiderSharedStatusStream(scanId);
 			if (!status$) return res.write(serializeSSEEvent("error", SCAN_STATUS.INVALID_ID));
 
 			const writer = status$.subscribe({
@@ -46,7 +52,7 @@ export function getTrialRouter(): Router {
 			req.on("close", () => {
 				userSession.info("One trial session disconnected");
 				writer.unsubscribe();
-				spiderStop(sharedClientId, startResult.scanId, true);
+				spiderSignalStop(scanId);
 			});
 		} catch (error) {
 			mainProc.error(`Error while polling ZAP spider results: ${error}`);

@@ -23,7 +23,7 @@ const monitoringSessions: Map<
 > = new Map();
 
 // BEGIN ZAP SPIDER
-export async function spiderStartAndMonitor(sessionId: ObjectId, url: string, config: any, emitDistinct?: boolean, removeOnDone?: boolean): Promise<string | undefined> {
+export async function spiderStartAndMonitor(sessionId: ObjectId | null, url: string, config: any, emitDistinct?: boolean, removeOnDone?: boolean): Promise<string | undefined> {
 	const startResult = await spiderStart(sharedClientId, url, config);
 
 	if (!startResult) {
@@ -54,42 +54,44 @@ export async function spiderStartAndMonitor(sessionId: ObjectId, url: string, co
 					return;
 				}
 
-				const fullResults = await spiderFullResults(sharedClientId, startResult.scanId);
-				if (!fullResults) {
-					mainProc.error(`Failed to get spider full results of client ${startResult.clientId}, scanId ${startResult.scanId}`);
-					await scanSessionModel
-						.findByIdAndUpdate(sessionId, {
-							status: {
-								state: ScanState.FAILED,
-								message: "Failed to get spider full results.",
+				if (sessionId !== null) {
+					const fullResults = await spiderFullResults(sharedClientId, startResult.scanId);
+					if (!fullResults) {
+						mainProc.error(`Failed to get spider full results of client ${startResult.clientId}, scanId ${startResult.scanId}`);
+						await scanSessionModel
+							.findByIdAndUpdate(sessionId, {
+								status: {
+									state: ScanState.FAILED,
+									message: "Failed to get spider full results.",
+								},
+							})
+							.exec()
+							.catch((error) => {
+								mainProc.error(`Error while update scan state to spider session: ${error}`);
+							});
+					} else {
+						const fullResultsDoc = new zapSpiderScanFullResultsModel({
+							sessionId,
+							fullResults: {
+								urlsInScope: fullResults[0].urlsInScope,
+								urlsOutOfScope: fullResults[1].urlsOutOfScope,
+								urlsError: fullResults[2].urlsIoError,
 							},
-						})
-						.exec()
-						.catch((error) => {
-							mainProc.error(`Error while update scan state to spider session: ${error}`);
 						});
-				} else {
-					const fullResultsDoc = new zapSpiderScanFullResultsModel({
-						sessionId,
-						fullResults: {
-							urlsInScope: fullResults[0].urlsInScope,
-							urlsOutOfScope: fullResults[1].urlsOutOfScope,
-							urlsError: fullResults[2].urlsIoError,
-						},
-					});
-					await fullResultsDoc.save().catch((error) => {
-						mainProc.error(`Error while saving spider full results: ${error}`);
-					});
-					await scanSessionModel
-						.findByIdAndUpdate(sessionId, {
-							status: {
-								state: ScanState.SUCCESSFUL,
-							},
-						})
-						.exec()
-						.catch((error) => {
-							mainProc.error(`Error while update scan state to spider session: ${error}`);
+						await fullResultsDoc.save().catch((error) => {
+							mainProc.error(`Error while saving spider full results: ${error}`);
 						});
+						await scanSessionModel
+							.findByIdAndUpdate(sessionId, {
+								status: {
+									state: ScanState.SUCCESSFUL,
+								},
+							})
+							.exec()
+							.catch((error) => {
+								mainProc.error(`Error while update scan state to spider session: ${error}`);
+							});
+					}
 				}
 
 				stopSignal$.next(true);

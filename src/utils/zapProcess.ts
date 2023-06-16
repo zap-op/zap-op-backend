@@ -27,7 +27,7 @@ export function startZapProcess(type: ZAP_SESSION_TYPES, port: number, relSessio
 	if (type === ZAP_SESSION_TYPES.SHARED) loggerToUse = zapProc;
 	else {
 		const customLoggerName = `zapPrivate-${crypto.randomUUID()}`;
-		loggerToUse = registerCustomLogger(customLoggerName, [sharedFileTransportOpt(customLoggerName), new winston.transports.Console({ format: winston.format.cli(), level: "error" })]);
+		loggerToUse = registerCustomLogger(customLoggerName, [sharedFileTransportOpt(customLoggerName)]);
 	}
 
 	const proc = spawn(ZAP_EXE, zapOptions);
