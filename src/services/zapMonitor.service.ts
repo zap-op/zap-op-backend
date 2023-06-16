@@ -181,9 +181,9 @@ export async function ajaxStartAndMonitor(sessionId: ObjectId, url: string, conf
 					const fullResultsDoc = new zapAjaxScanFullResultsModel({
 						sessionId,
 						fullResults: {
-							urlsInScope: fullResults[0].inScope,
-							urlsOutOfScope: fullResults[1].outOfScope,
-							urlsError: fullResults[2].errors,
+							urlsInScope: fullResults.inScope,
+							urlsOutOfScope: fullResults.outOfScope,
+							urlsError: fullResults.errors,
 						},
 					});
 					await fullResultsDoc.save().catch((error) => {

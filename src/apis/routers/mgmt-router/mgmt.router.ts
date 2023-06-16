@@ -103,7 +103,7 @@ export function getMgmtRouter(): Router {
 			})
 			.populate<{
 				targetPop: TTargetModel;
-			}>("targetPop", "name target")
+			}>("targetPop", "name target tag")
 			.sort({
 				updatedAt: -1,
 			})

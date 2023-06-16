@@ -29,6 +29,13 @@ const scanFullResultsModel = database!.model<TScanFullResults>(
 				updatedAt: true,
 			},
 		},
+	).index(
+		{
+			sessionId: 1,
+		},
+		{
+			unique: true,
+		},
 	),
 );
 

@@ -8,7 +8,7 @@ import { isValidObjectId } from "mongoose";
 import { serializeSSEEvent } from "../../../../../utils/network";
 import { ajaxFullResults, ajaxResults } from "../../../../../services/zapClient.service";
 import { ajaxSharedStatusStream, ajaxStartAndMonitor } from "../../../../../services/zapMonitor.service";
-import { targetModel, zapAjaxScanSessionModel } from "../../../../../models";
+import { targetModel, zapAjaxScanFullResultsModel, zapAjaxScanSessionModel } from "../../../../../models";
 import { MGMT_STATUS, SCAN_STATUS, ScanState, TUserModel } from "../../../../../utils/types";
 
 export function getZapAjaxRouter(): Router {
@@ -157,31 +157,18 @@ export function getZapAjaxRouter(): Router {
 	});
 
 	zapAjaxRouter.get("/fullResults", async (req, res) => {
-		const zapClientId = req.query.id;
-		if (typeof zapClientId !== "string" || isNaN(parseInt(zapClientId))) {
+		const scanSession = req.query.scanSession;
+		console.log("scanSession", scanSession);
+		if (typeof scanSession !== "string" || isNaN(parseInt(scanSession))) {
 			return res.status(400).send(SCAN_STATUS.INVALID_ID);
 		}
 
-		const urlsInScopeOffset = req.query.inScope ?? "0";
-		if (typeof urlsInScopeOffset !== "string" || isNaN(parseInt(urlsInScopeOffset))) {
-			return res.status(400).send(SCAN_STATUS.INVALID_RESULT_OFFSET);
-		}
+		const results = await zapAjaxScanFullResultsModel
+			.findOne({
+				sessionId: scanSession,
+			})
+			.exec();
 
-		const urlsOutOfScopeOffset = req.query.outOfScope ?? "0";
-		if (typeof urlsOutOfScopeOffset !== "string" || isNaN(parseInt(urlsOutOfScopeOffset))) {
-			return res.status(400).send(SCAN_STATUS.INVALID_RESULT_OFFSET);
-		}
-
-		const urlsErrorOffset = req.query.errors ?? "0";
-		if (typeof urlsErrorOffset !== "string" || isNaN(parseInt(urlsErrorOffset))) {
-			return res.status(400).send(SCAN_STATUS.INVALID_RESULT_OFFSET);
-		}
-
-		const results = await ajaxFullResults(zapClientId, {
-			inScope: parseInt(urlsInScopeOffset),
-			outOfScope: parseInt(urlsOutOfScopeOffset),
-			errors: parseInt(urlsErrorOffset),
-		});
 		if (!results) {
 			return res.status(400).send(SCAN_STATUS.INVALID_ID);
 		}
