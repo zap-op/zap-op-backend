@@ -1,4 +1,4 @@
-import express, { Router } from "express";
+import { Router } from "express";
 import { isOnProduction, isValidGoogleIDToken } from "../../../utils/validator";
 import { signJwt } from "../../../utils/crypto";
 import { userModel } from "../../../models/user.model";
@@ -6,7 +6,7 @@ import { LOGIN_STATUS, ACCESS_TOKEN_MAX_AGE, REFRESH_TOKEN_MAX_AGE, TOKEN_TYPE, 
 import { mainProc } from "../../../services/logging.service";
 
 export function getLoginRouter(): Router {
-	const loginRouter = express.Router();
+	const loginRouter = Router();
 
 	loginRouter.post("/", async (req, res) => {
 		if (!req.cookies[TOKEN_TYPE.GOOGLE] || typeof req.cookies[TOKEN_TYPE.GOOGLE] !== "string") return res.status(400).send(LOGIN_STATUS.TOKEN_NOT_FOUND);
@@ -19,8 +19,7 @@ export function getLoginRouter(): Router {
 			return res.status(400).send(LOGIN_STATUS.TOKEN_INVALID);
 		}
 
-		if (!googleData)
-			return res.status(400).send(LOGIN_STATUS.TOKEN_INVALID);
+		if (!googleData) return res.status(400).send(LOGIN_STATUS.TOKEN_INVALID);
 
 		const userObj: GgUserData = {
 			sub: googleData.sub,

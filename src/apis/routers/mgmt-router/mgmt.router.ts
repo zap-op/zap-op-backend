@@ -1,21 +1,14 @@
-import express, { Router } from "express";
+import { Router } from "express";
 import { Validator } from "express-json-validator-middleware";
 import { JSONSchema7 } from "json-schema";
 import { isValidURL } from "../../../utils/validator";
 import { JWTRequest } from "../../../utils/middlewares";
 import { mainProc } from "../../../services/logging.service";
-import {
-	targetModel, //
-	targetTrashModel,
-	scanSessionModel,
-} from "../../../models";
-import {
-	MGMT_STATUS, //
-	TTargetModel,
-} from "../../../utils/types";
+import { targetModel, targetTrashModel, scanSessionModel } from "../../../models";
+import { MGMT_STATUS, TTargetModel } from "../../../utils/types";
 
 export function getMgmtRouter(): Router {
-	const mgmtRouter = express.Router();
+	const mgmtRouter = Router();
 	const validator = new Validator({});
 
 	const postTargetSchema: JSONSchema7 = {
