@@ -6,7 +6,7 @@ import { JWTRequest } from "../../../../../utils/middlewares";
 import { mainProc, userSession } from "../../../../../services/logging.service";
 import { isValidObjectId } from "mongoose";
 import { serializeSSEEvent } from "../../../../../utils/network";
-import { ajaxFullResults, ajaxResults } from "../../../../../services/zapClient.service";
+import { ajaxResults } from "../../../../../services/zapClient.service";
 import { ajaxSharedStatusStream, ajaxStartAndMonitor } from "../../../../../services/zapMonitor.service";
 import { targetModel, zapAjaxScanFullResultsModel, zapAjaxScanSessionModel } from "../../../../../models";
 import { MGMT_STATUS, SCAN_STATUS, ScanState, TUserModel } from "../../../../../utils/types";

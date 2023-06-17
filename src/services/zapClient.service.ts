@@ -250,7 +250,7 @@ export async function ajaxResults(clientId: string, offset?: number): Promise<an
 	}
 }
 
-export async function ajaxFullResults(clientId: string, offset?: TZapAjaxFullResultsConfig): Promise<{ inScope: any[]; outOfScope: any[]; errors: any[] } | undefined> {
+export async function ajaxFullResults(clientId: string): Promise<{ inScope: any[], outOfScope: any[], errors: any[] } | undefined> {
 	if (!zapClients.has(clientId)) {
 		mainProc.error(`Get ajax full result with wrong id: ${clientId}`);
 		return undefined;
@@ -260,11 +260,6 @@ export async function ajaxFullResults(clientId: string, offset?: TZapAjaxFullRes
 
 	try {
 		const results = (await client.ajaxSpider.fullResults()).fullResults;
-
-		if (offset?.inScope) results[0].inScope.splice(offset.inScope);
-		if (offset?.outOfScope) results[1].outOfScope.splice(offset.outOfScope);
-		if (offset?.errors) results[2].errors.splice(offset.errors);
-
 		return results;
 	} catch (error) {
 		mainProc.error(`Error while getting zap ajax full results of client ${clientId}: ${error}`);
