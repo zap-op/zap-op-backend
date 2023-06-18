@@ -185,7 +185,7 @@ export async function ajaxStart(clientId: string | undefined, url: string, confi
 		const client = zapClients.get(clientId);
 
 		// TODO: Only support chrome-headless for now
-		let result = await client.ajaxSpider.setOptionBrowserId("chrome-headless");
+		let result = await client.ajaxSpider.setOptionBrowserId("firefox-headless");
 		if (result.Result !== "OK") {
 			mainProc.info(`Failed to set ajax scan option of client: ${clientId}`);
 			await stopZapClient(clientId);
