@@ -1,4 +1,21 @@
-import { ajaxStatusStream, spiderStop, spiderStatusStream, spiderStart, ajaxStart, spiderFullResults, ajaxFullResults, sharedClientId, stopZapClient, passiveStart, passiveStatusStream, activeStart, activeStatusStream, activeFullResults, passiveFullResults } from "./zapClient.service";
+import {
+	spiderStart,
+	spiderStop,
+	spiderStatusStream,
+	spiderFullResults,
+	ajaxStart,
+	ajaxStatusStream, //
+	ajaxFullResults,
+	passiveStart,
+	passiveStatusStream,
+	passiveFullResults,
+	activeStart,
+	activeStatusStream,
+	stopZapClient,
+	sharedClientId,
+	activeAlertsByRisk,
+	activeAlerts,
+} from "./zapClient.service";
 import { BehaviorSubject, Connectable, connectable, distinctUntilChanged, finalize, identity, Subject, takeUntil, tap } from "rxjs";
 import { mainProc } from "./logging.service";
 import { genSHA512 } from "../utils/crypto";
@@ -93,7 +110,6 @@ export async function spiderStartAndMonitor(sessionId: ObjectId | null, url: str
 							});
 					}
 				}
-
 				stopSignal$.next(true);
 			}),
 			emitDistinct ? distinctUntilChanged((prev, cur) => prev.status === cur.status) : identity,
@@ -371,13 +387,18 @@ export async function activeStartAndMonitor(
 		return undefined;
 	}
 
-	const monitorId: TMonitorSessionId = { clientId: result.clientId, scanId: result.scanId };
+	const { clientId, scanId } = result;
+
+	const monitorId: TMonitorSessionId = {
+		clientId,
+		scanId,
+	};
 	const monitorHash = genSHA512(monitorId);
 
 	const stopSignal$ = new Subject<boolean>();
 	let done = false;
 
-	const rawStatus$ = activeStatusStream(result.clientId, result.scanId);
+	const rawStatus$ = activeStatusStream(clientId, scanId);
 	if (!rawStatus$) {
 		mainProc.error("Failed to get active status stream, nothing to monitor");
 		return undefined;
@@ -394,9 +415,10 @@ export async function activeStartAndMonitor(
 					return;
 				}
 
-				const fullResults = await activeFullResults(result.clientId);
-				if (!fullResults) {
-					mainProc.error(`Failed to get active full results of client ${result.clientId}`);
+				const alertsResults = await activeAlerts(clientId);
+				const alertByRiskResults = await activeAlertsByRisk(clientId);
+				if (!alertsResults || !alertByRiskResults) {
+					mainProc.error(`Failed to get active full results of client ${clientId}`);
 					await scanSessionModel
 						.findByIdAndUpdate(sessionId, {
 							status: {
@@ -412,7 +434,8 @@ export async function activeStartAndMonitor(
 					const fullResultsDoc = new zapActiveScanFullResultsModel({
 						sessionId,
 						fullResults: {
-							data: fullResults,
+							alertsByRisk: alertByRiskResults,
+							alerts: alertsResults,
 						},
 					});
 					await fullResultsDoc.save().catch((error) => {
@@ -434,7 +457,7 @@ export async function activeStartAndMonitor(
 			}),
 			emitDistinct ? distinctUntilChanged((prev, cur) => prev.status === cur.status) : identity,
 			finalize(async () => {
-				await stopZapClient(result.clientId);
+				await stopZapClient(clientId);
 				monitoringSessions.delete(monitorHash);
 			}),
 		),

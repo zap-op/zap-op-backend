@@ -95,7 +95,11 @@ export const zapActiveScanFullResultsModel = scanFullResultsModel.discriminator<
 	FULL_RESULT_TYPE.ZAP.ACTIVE,
 	new database!.Schema<TZapActiveScanFullResultsModel>({
 		fullResults: {
-			data: {
+			alertsByRisk: {
+				type: Schema.Types.Mixed,
+				default: {},
+			},
+			alerts: {
 				type: [Schema.Types.Mixed],
 				default: [],
 			},

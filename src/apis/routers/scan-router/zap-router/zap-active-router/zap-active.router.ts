@@ -2,14 +2,14 @@ import { Router } from "express";
 import { Validator } from "express-json-validator-middleware";
 import { JSONSchema7 } from "json-schema";
 import { JWTRequest } from "../../../../../utils/middlewares";
-import { targetModel, zapActiveScanSessionModel } from "../../../../../models";
+import { targetModel, zapActiveScanFullResultsModel, zapActiveScanSessionModel } from "../../../../../models";
 import { MGMT_STATUS, SCAN_STATUS, ScanState, TUserModel } from "../../../../../utils/types";
 import { isValidURL } from "../../../../../utils/validator";
 import { activeSharedStatusStream, activeStartAndMonitor } from "../../../../../services/zapMonitor.service";
 import { mainProc, userSession } from "../../../../../services/logging.service";
 import { isValidObjectId } from "mongoose";
 import { serializeSSEEvent } from "../../../../../utils/network";
-import { activeFullResults, activeScanProgress } from "../../../../../services/zapClient.service";
+import { activeAlerts, activeScanProgress } from "../../../../../services/zapClient.service";
 
 export function getZapActiveRouter(): Router {
 	const zapActiveRouter = Router();
@@ -228,17 +228,17 @@ export function getZapActiveRouter(): Router {
 	});
 
 	zapActiveRouter.get("/fullResults", async (req, res) => {
-		const zapClientId = req.query.zapClientId;
-		if (typeof zapClientId !== "string" || isNaN(parseInt(zapClientId))) {
+		const scanSession = req.query.scanSession;
+		if (typeof scanSession !== "string" || isNaN(parseInt(scanSession))) {
 			return res.status(400).send(SCAN_STATUS.INVALID_ID);
 		}
 
-		const offset = req.query.offset ?? "0";
-		if (typeof offset !== "string" || isNaN(parseInt(offset))) {
-			return res.status(400).send(SCAN_STATUS.INVALID_RESULT_OFFSET);
-		}
+		const results = await zapActiveScanFullResultsModel
+			.findOne({
+				sessionId: scanSession,
+			})
+			.exec();
 
-		const results = await activeFullResults(zapClientId, parseInt(offset));
 		if (!results) {
 			return res.status(400).send(SCAN_STATUS.INVALID_ID);
 		}

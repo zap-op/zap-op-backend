@@ -158,7 +158,6 @@ export function getZapAjaxRouter(): Router {
 
 	zapAjaxRouter.get("/fullResults", async (req, res) => {
 		const scanSession = req.query.scanSession;
-		console.log("scanSession", scanSession);
 		if (typeof scanSession !== "string" || isNaN(parseInt(scanSession))) {
 			return res.status(400).send(SCAN_STATUS.INVALID_ID);
 		}
