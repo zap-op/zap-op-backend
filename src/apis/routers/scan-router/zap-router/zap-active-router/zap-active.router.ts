@@ -3,7 +3,7 @@ import { Validator } from "express-json-validator-middleware";
 import { JSONSchema7 } from "json-schema";
 import { JWTRequest } from "../../../../../utils/middlewares";
 import { targetModel, zapActiveScanFullResultsModel, zapActiveScanSessionModel } from "../../../../../models";
-import { MGMT_STATUS, SCAN_STATUS, ScanState, TUserModel } from "../../../../../utils/types";
+import { MGMT_STATUS, SCAN_STATUS, ScanState, TScanSessionModel, TUserModel } from "../../../../../utils/types";
 import { isValidURL } from "../../../../../utils/validator";
 import { activeSharedStatusStream, activeStartAndMonitor } from "../../../../../services/zapMonitor.service";
 import { mainProc, userSession } from "../../../../../services/logging.service";
@@ -164,11 +164,6 @@ export function getZapActiveRouter(): Router {
 			return res.status(400).send(SCAN_STATUS.INVALID_ID);
 		}
 
-		const zapScanId = req.query.zapScanId;
-		if (typeof zapScanId !== "string" || zapScanId.length === 0) {
-			return res.status(400).send(SCAN_STATUS.INVALID_ID);
-		}
-
 		const headers = {
 			"Content-Type": "text/event-stream",
 			Connection: "keep-alive",
@@ -178,12 +173,17 @@ export function getZapActiveRouter(): Router {
 		res.writeHead(200, headers);
 
 		try {
-			const scanSessionDoc = await zapActiveScanSessionModel.findById(scanSession).populate<{ userPop: TUserModel }>("userPop", "_id").exec();
-			if (!scanSessionDoc || scanSessionDoc.userPop._id.toString() !== req.accessToken!.userId) {
+			const scanSessionDoc = await zapActiveScanSessionModel.findById(scanSession).then((session) => {
+				if (session?.userPop.toString() !== req.accessToken?.userId) {
+					return undefined;
+				}
+				return session;
+			});
+			if (!scanSessionDoc) {
 				return res.write(serializeSSEEvent("error", SCAN_STATUS.INVALID_SESSION));
 			}
 
-			const status$ = activeSharedStatusStream(zapClientId, zapScanId);
+			const status$ = activeSharedStatusStream(zapClientId);
 			if (!status$) {
 				return res.write(serializeSSEEvent("error", SCAN_STATUS.INVALID_ID));
 			}
@@ -227,7 +227,7 @@ export function getZapActiveRouter(): Router {
 		return res.status(200).send(results);
 	});
 
-	zapActiveRouter.get("/fullResults", async (req, res) => {
+	zapActiveRouter.get("/fullResults", async (req: JWTRequest, res) => {
 		const scanSession = req.query.scanSession;
 		if (typeof scanSession !== "string" || isNaN(parseInt(scanSession))) {
 			return res.status(400).send(SCAN_STATUS.INVALID_ID);
@@ -235,10 +235,17 @@ export function getZapActiveRouter(): Router {
 
 		const results = await zapActiveScanFullResultsModel
 			.findOne({
-				sessionId: scanSession,
+				sessionPop: scanSession,
 			})
-			.exec();
-
+			.populate<{
+				sessionPop: Pick<TScanSessionModel, "userPop">;
+			}>("sessionPop", "userPop")
+			.then((res) => {
+				if (res?.sessionPop.userPop.toString() !== req.accessToken?.userId) {
+					return undefined;
+				}
+				return res;
+			});
 		if (!results) {
 			return res.status(400).send(SCAN_STATUS.INVALID_ID);
 		}

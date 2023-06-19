@@ -5,7 +5,7 @@ import { TARGET_COLLECTION } from "./target.model";
 import { USER_COLLECTION } from "./user.model";
 import { ScanType, TScanSessionModel, TZapActiveScanSessionModel, TZapAjaxScanSessionModel, TZapPassiveScanSessionModel, TZapSpiderScanSessionModel } from "../utils/types";
 
-const SCAN_SESSION_COLLECTION = "scan_sessions" + (!isOnProduction() ? "_tests" : "");
+export const SCAN_SESSION_COLLECTION = "scan_sessions" + (!isOnProduction() ? "_tests" : "");
 
 export const scanSessionModel = database!.model<TScanSessionModel>(
 	SCAN_SESSION_COLLECTION,

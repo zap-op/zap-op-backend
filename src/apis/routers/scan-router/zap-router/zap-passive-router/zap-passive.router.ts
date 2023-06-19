@@ -2,8 +2,8 @@ import { Router } from "express";
 import { Validator } from "express-json-validator-middleware";
 import { JSONSchema7 } from "json-schema";
 import { JWTRequest } from "../../../../../utils/middlewares";
-import { targetModel, zapPassiveScanSessionModel } from "../../../../../models";
-import { MGMT_STATUS, SCAN_STATUS, ScanState, TUserModel } from "../../../../../utils/types";
+import { targetModel, zapPassiveScanFullResultsModel, zapPassiveScanSessionModel } from "../../../../../models";
+import { MGMT_STATUS, SCAN_STATUS, ScanState, TScanSessionModel, TUserModel } from "../../../../../utils/types";
 import { isValidURL } from "../../../../../utils/validator";
 import { passiveSharedStatusStream, passiveStartAndMonitor } from "../../../../../services/zapMonitor.service";
 import { mainProc, userSession } from "../../../../../services/logging.service";
@@ -143,8 +143,13 @@ export function getZapPassiveRouter(): Router {
 		res.writeHead(200, headers);
 
 		try {
-			const scanSessionDoc = await zapPassiveScanSessionModel.findById(scanSession).populate<{ userPop: TUserModel }>("userPop", "_id").exec();
-			if (!scanSessionDoc || scanSessionDoc.userPop._id.toString() !== req.accessToken!.userId) {
+			const scanSessionDoc = await zapPassiveScanSessionModel.findById(scanSession).then((session) => {
+				if (session?.userPop.toString() !== req.accessToken?.userId) {
+					return undefined;
+				}
+				return session;
+			});
+			if (!scanSessionDoc) {
 				return res.write(serializeSSEEvent("error", SCAN_STATUS.INVALID_SESSION));
 			}
 
@@ -168,18 +173,25 @@ export function getZapPassiveRouter(): Router {
 		}
 	});
 
-	zapPassiveRouter.get("/fullResults", async (req, res) => {
-		const zapClientId = req.query.id;
-		if (typeof zapClientId !== "string" || isNaN(parseInt(zapClientId))) {
+	zapPassiveRouter.get("/fullResults", async (req:JWTRequest, res) => {
+		const scanSession = req.query.scanSession;
+		if (typeof scanSession !== "string" || isNaN(parseInt(scanSession))) {
 			return res.status(400).send(SCAN_STATUS.INVALID_ID);
 		}
 
-		const offset = req.query.offset ?? "0";
-		if (typeof offset !== "string" || isNaN(parseInt(offset))) {
-			return res.status(400).send(SCAN_STATUS.INVALID_RESULT_OFFSET);
-		}
-
-		const results = await passiveFullResults(zapClientId, parseInt(offset));
+		const results = await zapPassiveScanFullResultsModel
+			.findOne({
+				sessionPop: scanSession,
+			})
+			.populate<{
+				sessionPop: Pick<TScanSessionModel, "userPop">;
+			}>("sessionPop", "userPop")
+			.then((res) => {
+				if (res?.sessionPop.userPop.toString() !== req.accessToken?.userId) {
+					return undefined;
+				}
+				return res;
+			});
 		if (!results) {
 			return res.status(400).send(SCAN_STATUS.INVALID_ID);
 		}

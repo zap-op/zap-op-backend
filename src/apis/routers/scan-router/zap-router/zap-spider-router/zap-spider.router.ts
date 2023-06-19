@@ -9,7 +9,7 @@ import { serializeSSEEvent } from "../../../../../utils/network";
 import { spiderSharedStatusStream, spiderStartAndMonitor } from "../../../../../services/zapMonitor.service";
 import { sharedClientId, spiderResults } from "../../../../../services/zapClient.service";
 import { targetModel, zapSpiderScanFullResultsModel, zapSpiderScanSessionModel } from "../../../../../models";
-import { MGMT_STATUS, SCAN_STATUS, ScanState, TPOST, TUserModel, TZapSpiderRequest } from "../../../../../utils/types";
+import { MGMT_STATUS, SCAN_STATUS, ScanState, TPOST, TScanSessionModel, TUserModel, TZapSpiderRequest } from "../../../../../utils/types";
 
 export function getZapSpiderRouter(): Router {
 	const zapSpiderRouter = Router();
@@ -111,8 +111,13 @@ export function getZapSpiderRouter(): Router {
 		res.writeHead(200, headers);
 
 		try {
-			const scanSessionDoc = await zapSpiderScanSessionModel.findById(scanSession).populate<{ userPop: TUserModel }>("userPop", "_id").exec();
-			if (!scanSessionDoc || scanSessionDoc.userPop._id.toString() !== req.accessToken!.userId) {
+			const scanSessionDoc = await zapSpiderScanSessionModel.findById(scanSession).then((session) => {
+				if (session?.userPop.toString() !== req.accessToken?.userId) {
+					return undefined;
+				}
+				return session;
+			});
+			if (!scanSessionDoc) {
 				return res.write(serializeSSEEvent("error", SCAN_STATUS.INVALID_SESSION));
 			}
 
@@ -151,7 +156,7 @@ export function getZapSpiderRouter(): Router {
 		return res.status(200).send(results);
 	});
 
-	zapSpiderRouter.get("/fullResults", async (req, res) => {
+	zapSpiderRouter.get("/fullResults", async (req: JWTRequest, res) => {
 		const scanSession = req.query.scanSession;
 		if (typeof scanSession !== "string" || isNaN(parseInt(scanSession))) {
 			return res.status(400).send(SCAN_STATUS.INVALID_ID);
@@ -159,9 +164,17 @@ export function getZapSpiderRouter(): Router {
 
 		const results = await zapSpiderScanFullResultsModel
 			.findOne({
-				sessionId: scanSession,
+				sessionPop: scanSession,
 			})
-			.exec();
+			.populate<{
+				sessionPop: Pick<TScanSessionModel, "userPop">;
+			}>("sessionPop", "userPop")
+			.then((res) => {
+				if (res?.sessionPop.userPop.toString() !== req.accessToken?.userId) {
+					return undefined;
+				}
+				return res;
+			});
 
 		if (!results) {
 			return res.status(400).send(SCAN_STATUS.INVALID_ID);

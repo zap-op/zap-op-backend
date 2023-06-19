@@ -88,7 +88,7 @@ export async function spiderStartAndMonitor(sessionId: ObjectId | null, url: str
 							});
 					} else {
 						const fullResultsDoc = new zapSpiderScanFullResultsModel({
-							sessionId,
+							sessionPop: sessionId,
 							fullResults: {
 								urlsInScope: fullResults[0].urlsInScope,
 								urlsOutOfScope: fullResults[1].urlsOutOfScope,
@@ -197,7 +197,7 @@ export async function ajaxStartAndMonitor(sessionId: ObjectId, url: string, conf
 						});
 				} else {
 					const fullResultsDoc = new zapAjaxScanFullResultsModel({
-						sessionId,
+						sessionPop: sessionId,
 						fullResults: {
 							urlsInScope: fullResults.inScope,
 							urlsOutOfScope: fullResults.outOfScope,
@@ -306,7 +306,7 @@ export async function passiveStartAndMonitor(sessionId: ObjectId, url: string, e
 						});
 				} else {
 					const fullResultsDoc = new zapPassiveScanFullResultsModel({
-						sessionId,
+						sessionPop: sessionId,
 						fullResults: {
 							data: fullResults,
 						},
@@ -432,7 +432,7 @@ export async function activeStartAndMonitor(
 						});
 				} else {
 					const fullResultsDoc = new zapActiveScanFullResultsModel({
-						sessionId,
+						sessionPop: sessionId,
 						fullResults: {
 							alertsByRisk: alertByRiskResults,
 							alerts: alertsResults,
@@ -474,8 +474,8 @@ export async function activeStartAndMonitor(
 	return result;
 }
 
-export function activeSharedStatusStream(clientId: string, scanId: string): Connectable<{ status: string }> | undefined {
-	const monitorId: TMonitorSessionId = { clientId, scanId };
+export function activeSharedStatusStream(clientId: string): Connectable<{ status: string }> | undefined {
+	const monitorId: TMonitorSessionId = { clientId, scanId: "0" };
 	return monitoringSessions.get(genSHA512(monitorId))?.status$ as Connectable<{ status: string }>;
 }
 

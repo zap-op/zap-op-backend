@@ -2,6 +2,7 @@ import { Schema } from "mongoose";
 import { database } from "../services/database.service";
 import { isOnProduction } from "../utils/validator";
 import { TScanFullResults, TZapActiveScanFullResultsModel, TZapAjaxScanFullResultsModel, TZapPassiveScanFullResultsModel, TZapSpiderScanFullResultsModel } from "../utils/types";
+import { SCAN_SESSION_COLLECTION } from "./scan-session.model";
 
 const SCAN_FULLRESULTS_COLLECTION = "scan_fullresults" + (!isOnProduction() ? "_tests" : "");
 
@@ -18,8 +19,9 @@ const scanFullResultsModel = database!.model<TScanFullResults>(
 	SCAN_FULLRESULTS_COLLECTION,
 	new database!.Schema<TScanFullResults>(
 		{
-			sessionId: {
+			sessionPop: {
 				type: Schema.Types.ObjectId,
+				ref: SCAN_SESSION_COLLECTION,
 				required: true,
 			},
 		},
@@ -31,7 +33,7 @@ const scanFullResultsModel = database!.model<TScanFullResults>(
 		},
 	).index(
 		{
-			sessionId: 1,
+			sessionPop: 1,
 		},
 		{
 			unique: true,
