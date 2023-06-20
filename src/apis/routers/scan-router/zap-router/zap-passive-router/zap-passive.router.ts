@@ -9,7 +9,7 @@ import { passiveSharedStatusStream, passiveStartAndMonitor } from "../../../../.
 import { mainProc, userSession } from "../../../../../services/logging.service";
 import { isValidObjectId } from "mongoose";
 import { serializeSSEEvent } from "../../../../../utils/network";
-import { passiveFullResults } from "../../../../../services/zapClient.service";
+import { passiveAlerts } from "../../../../../services/zapClient.service";
 
 export function getZapPassiveRouter(): Router {
 	const zapPassiveRouter = Router();
@@ -173,7 +173,7 @@ export function getZapPassiveRouter(): Router {
 		}
 	});
 
-	zapPassiveRouter.get("/fullResults", async (req:JWTRequest, res) => {
+	zapPassiveRouter.get("/fullResults", async (req: JWTRequest, res) => {
 		const scanSession = req.query.scanSession;
 		if (typeof scanSession !== "string" || isNaN(parseInt(scanSession))) {
 			return res.status(400).send(SCAN_STATUS.INVALID_ID);

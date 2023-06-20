@@ -289,7 +289,15 @@ export async function passiveStart(url: string, exploreType: "spider" | "ajax", 
 			return undefined;
 		}
 
-		result = await client.pscan.setScanOnlyInScope("true");
+		// enableAllTags
+		result = await client.requestPromise("/pscan/action/enableAllTags/");
+		if (result.Result !== "OK") {
+			mainProc.info("Failed to enable passive tags - Stopping client");
+			await stopZapClient(clientId);
+			return undefined;
+		}
+
+		result = await client.pscan.setScanOnlyInScope("false");
 		if (result.Result !== "OK") {
 			mainProc.info("Failed to set passive scan only in scope - Stopping client");
 			await stopZapClient(clientId);
@@ -311,7 +319,7 @@ export async function passiveStart(url: string, exploreType: "spider" | "ajax", 
 	}
 }
 
-export function passiveStatusStream(clientId: string): Observable<{ recordsToScan: string }> | undefined {
+export function passiveStatusStream(clientId: string): Observable<{ status: TZapAjaxStreamStatus }> | undefined {
 	if (!zapClients.has(clientId)) {
 		mainProc.error(`Get passive status with wrong id: ${clientId}`);
 		return undefined;
@@ -319,7 +327,7 @@ export function passiveStatusStream(clientId: string): Observable<{ recordsToSca
 
 	const client = zapClients.get(clientId);
 	return timer(ZAP_POLL_DELAY, ZAP_POLL_INTERVAL).pipe(
-		switchMap(() => from(client.pscan.recordsToScan()) as Observable<{ recordsToScan: string }>),
+		switchMap(() => from(client.ajaxSpider.status()) as Observable<{ status: TZapAjaxStreamStatus }>),
 		retry(ZAP_POLL_MAX_RETRY),
 		catchError((err) => {
 			throw `Error while polling zap passive status of client ${clientId}: ${err}`;
@@ -327,14 +335,14 @@ export function passiveStatusStream(clientId: string): Observable<{ recordsToSca
 	);
 }
 
-export async function passiveFullResults(clientId: string, offset?: number): Promise<any[] | undefined> {
+export async function passiveAlerts(clientId: string): Promise<any[] | undefined> {
 	if (!zapClients.has(clientId)) {
 		mainProc.error(`Get passive full results with wrong id: ${clientId}`);
 		return undefined;
 	}
 
 	try {
-		return (await zapClients.get(clientId).core.alert(null, offset ?? 0)).alerts;
+		return (await zapClients.get(clientId).requestPromise("/alert/view/alerts/", {})).alerts;
 	} catch (error) {
 		mainProc.error(`Error while getting zap passive full results of client ${clientId}: ${error}`);
 		return undefined;

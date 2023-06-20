@@ -8,7 +8,7 @@ import {
 	ajaxFullResults,
 	passiveStart,
 	passiveStatusStream,
-	passiveFullResults,
+	passiveAlerts,
 	activeStart,
 	activeStatusStream,
 	stopZapClient,
@@ -283,15 +283,15 @@ export async function passiveStartAndMonitor(sessionId: ObjectId, url: string, e
 		rawStatus$.pipe(
 			takeUntil(stopSignal$),
 			tap(async (val) => {
-				if (val.recordsToScan !== "0") return;
+				if (val.status !== "stopped") return;
 
 				if (!done) {
 					done = true;
 					return;
 				}
 
-				const fullResults = await passiveFullResults(clientId);
-				if (!fullResults) {
+				const alerts = await passiveAlerts(clientId);
+				if (!alerts) {
 					mainProc.error(`Failed to get passive full results of client ${clientId}`);
 					await scanSessionModel
 						.findByIdAndUpdate(sessionId, {
@@ -308,7 +308,7 @@ export async function passiveStartAndMonitor(sessionId: ObjectId, url: string, e
 					const fullResultsDoc = new zapPassiveScanFullResultsModel({
 						sessionPop: sessionId,
 						fullResults: {
-							data: fullResults,
+							data: alerts,
 						},
 					});
 					await fullResultsDoc.save().catch((error) => {
@@ -328,14 +328,14 @@ export async function passiveStartAndMonitor(sessionId: ObjectId, url: string, e
 
 				stopSignal$.next(true);
 			}),
-			emitDistinct ? distinctUntilChanged((prev, cur) => prev.recordsToScan === cur.recordsToScan) : identity,
+			emitDistinct ? distinctUntilChanged((prev, cur) => prev.status === cur.status) : identity,
 			finalize(async () => {
 				await stopZapClient(clientId);
 				monitoringSessions.delete(monitorHash);
 			}),
 		),
 		{
-			connector: () => new BehaviorSubject({ recordsToScan: "1" }),
+			connector: () => new BehaviorSubject({ status: "running" }),
 			resetOnDisconnect: false,
 		},
 	);
