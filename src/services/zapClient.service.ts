@@ -1,8 +1,7 @@
 // @ts-ignore
 import ZapClient from "zaproxy";
-import { catchError, from, Observable, retry, switchMap, timer } from "rxjs";
+import { catchError, concat, from, map, Observable, retry, Subject, switchMap, takeUntil, tap, timer } from "rxjs";
 import { mainProc } from "./logging.service";
-import { TZapAjaxFullResultsConfig, TZapSpiderFullResultsParams } from "../submodules/utility/api";
 import { startZapProcess, ZAP_SESSION_TYPES } from "../utils/zapProcess";
 import crypto from "crypto";
 import { zapGetAvailablePort } from "./zapMonitor.service";
@@ -149,7 +148,7 @@ export async function spiderResults(clientId: string, scanId: string, offset?: n
 	}
 }
 
-export async function spiderFullResults(clientId: string, scanId: string, offset?: TZapSpiderFullResultsParams): Promise<[{ urlsInScope: any[] }, { urlsOutOfScope: any[] }, { urlsIoError: any[] }] | undefined> {
+export async function spiderFullResults(clientId: string, scanId: string): Promise<[{ urlsInScope: any[] }, { urlsOutOfScope: any[] }, { urlsIoError: any[] }] | undefined> {
 	if (!zapClients.has(clientId)) {
 		mainProc.error(`Get spider full results with wrong id: ${clientId}`);
 		return undefined;
@@ -157,11 +156,6 @@ export async function spiderFullResults(clientId: string, scanId: string, offset
 
 	try {
 		const results = (await zapClients.get(clientId).spider.fullResults(scanId)).fullResults;
-
-		if (offset?.urlsInScopeOffset) results[0].urlsInScope.splice(offset.urlsInScopeOffset);
-		if (offset?.urlsOutOfScopeOffset) results[1].urlsOutOfScope.splice(offset.urlsOutOfScopeOffset);
-		if (offset?.urlsIoErrorOffset) results[2].urlsIoError.splice(offset.urlsIoErrorOffset);
-
 		return results;
 	} catch (err) {
 		mainProc.error(`Error while fetching zap spider full results of client ${clientId}: ${err}`);
@@ -184,7 +178,7 @@ export async function ajaxStart(clientId: string | undefined, url: string, confi
 	try {
 		const client = zapClients.get(clientId);
 
-		// TODO: Only support chrome-headless for now
+		// Only support firefox-headless for now
 		let result = await client.ajaxSpider.setOptionBrowserId("firefox-headless");
 		if (result.Result !== "OK") {
 			mainProc.info(`Failed to set ajax scan option of client: ${clientId}`);
@@ -319,20 +313,41 @@ export async function passiveStart(url: string, exploreType: "spider" | "ajax", 
 	}
 }
 
-export function passiveStatusStream(clientId: string): Observable<{ status: TZapAjaxStreamStatus }> | undefined {
+export function passiveStatusStream(clientId: string, exploreType: "spider" | "ajax"): Observable<{ status: string | TZapAjaxStreamStatus | "explored", recordsToScan?: string }> | undefined {
 	if (!zapClients.has(clientId)) {
 		mainProc.error(`Get passive status with wrong id: ${clientId}`);
 		return undefined;
 	}
 
 	const client = zapClients.get(clientId);
-	return timer(ZAP_POLL_DELAY, ZAP_POLL_INTERVAL).pipe(
-		switchMap(() => from(client.ajaxSpider.status()) as Observable<{ status: TZapAjaxStreamStatus }>),
+	const stopExploreSignal$ = new Subject<boolean>();
+
+	const exploreStatus$ = timer(ZAP_POLL_DELAY, ZAP_POLL_INTERVAL).pipe(
+		switchMap(() => from(exploreType === "spider" ? client.spider.status("0") : client.ajaxSpider.status()) as Observable<{ status: string | TZapAjaxStreamStatus }>),
+		takeUntil(stopExploreSignal$),
+		tap((val) => {
+			if (val.status !== "stopped" && (isNaN(parseInt(val.status)) || parseInt(val.status)) !== 100) return;
+			stopExploreSignal$.next(true);
+		}),
 		retry(ZAP_POLL_MAX_RETRY),
 		catchError((err) => {
-			throw `Error while polling zap passive status of client ${clientId}: ${err}`;
+			throw `Error while polling zap passive's explore status of client ${clientId}: ${err}`;
 		}),
 	);
+
+	const passiveStatus$ = timer(ZAP_POLL_DELAY, ZAP_POLL_INTERVAL).pipe(
+		switchMap(() => from(client.pscan.recordsToScan()) as Observable<{ recordsToScan: string }>),
+		map((val: { status: "explored", recordsToScan: string }) => {
+			val.status = "explored";
+			return val;
+		}),
+		retry(ZAP_POLL_MAX_RETRY),
+		catchError((err) => {
+			throw `Error while polling zap passive's records to scan of client ${clientId}: ${err}`;
+		}),
+	);
+
+	return concat(exploreStatus$, passiveStatus$);
 }
 
 export async function passiveAlerts(clientId: string): Promise<any[] | undefined> {
@@ -371,7 +386,7 @@ export async function activeStart(url: string, exploreType: "spider" | "ajax", e
 			return undefined;
 		}
 
-		await sleep(5000);
+		await sleep(10_000);
 
 		result = await client.ascan.scan(url, activeConfig.recurse, activeConfig.inScopeOnly, activeConfig.scanPolicyName, activeConfig.method, activeConfig.postdata, activeConfig.contextId);
 

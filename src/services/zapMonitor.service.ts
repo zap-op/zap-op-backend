@@ -34,7 +34,7 @@ type TMonitorSessionIdHash = string;
 const monitoringSessions: Map<
 	TMonitorSessionIdHash,
 	{
-		status$: Connectable<{ status: string } | { status: TZapAjaxStreamStatus } | { recordsToScan: string }>;
+		status$: Connectable<{ status: string | TZapAjaxStreamStatus; recordsToScan?: string }>;
 		stopSignal$: Subject<boolean>;
 	}
 > = new Map();
@@ -270,20 +270,20 @@ export async function passiveStartAndMonitor(sessionId: ObjectId, url: string, e
 	const monitorId: TMonitorSessionId = { clientId, scanId: "0" };
 	const monitorHash = genSHA512(monitorId);
 
-	const stopSignal$ = new Subject<boolean>();
-	let done = false;
-
-	const rawStatus$ = passiveStatusStream(clientId);
+	const rawStatus$ = passiveStatusStream(clientId, exploreType);
 	if (!rawStatus$) {
 		mainProc.error("Failed to get passive status stream, nothing to monitor");
 		return undefined;
 	}
 
+	const stopSignal$ = new Subject<boolean>();
+	let done = false;
+
 	const status$ = connectable(
 		rawStatus$.pipe(
 			takeUntil(stopSignal$),
 			tap(async (val) => {
-				if (val.status !== "stopped") return;
+				if (val.recordsToScan === undefined || parseInt(val.recordsToScan) !== 0) return;
 
 				if (!done) {
 					done = true;
@@ -328,14 +328,14 @@ export async function passiveStartAndMonitor(sessionId: ObjectId, url: string, e
 
 				stopSignal$.next(true);
 			}),
-			emitDistinct ? distinctUntilChanged((prev, cur) => prev.status === cur.status) : identity,
+			emitDistinct ? distinctUntilChanged((prev, cur) => prev.status === cur.status && prev.recordsToScan === cur.recordsToScan) : identity,
 			finalize(async () => {
 				await stopZapClient(clientId);
 				monitoringSessions.delete(monitorHash);
 			}),
 		),
 		{
-			connector: () => new BehaviorSubject({ status: "running" }),
+			connector: () => new BehaviorSubject({ status: "0", recordsToScan: undefined }),
 			resetOnDisconnect: false,
 		},
 	);
@@ -347,9 +347,9 @@ export async function passiveStartAndMonitor(sessionId: ObjectId, url: string, e
 	return clientId;
 }
 
-export function passiveSharedStatusStream(clientId: string): Connectable<{ recordsToScan: string }> | undefined {
+export function passiveSharedStatusStream(clientId: string): Connectable<{ status: string | TZapAjaxStreamStatus | "explored"; recordsToScan?: string }> | undefined {
 	const monitorId: TMonitorSessionId = { clientId, scanId: "0" };
-	return monitoringSessions.get(genSHA512(monitorId))?.status$ as Connectable<{ recordsToScan: string }>;
+	return monitoringSessions.get(genSHA512(monitorId))?.status$;
 }
 
 export function passiveSignalStop(clientId: string): void {
