@@ -63,6 +63,54 @@ export function signalStopAllZapClient(): void {
 	mainProc.info("Shutting down all ZAP clients");
 }
 
+export async function getClientAlerts(clientId: string): Promise<any[] | undefined> {
+	if (!zapClients.has(clientId)) {
+		mainProc.error(`Get client alerts with wrong id: ${clientId}`);
+		return undefined;
+	}
+
+	try {
+		return (await zapClients.get(clientId).requestPromise("/alert/view/alerts/", {})).alerts;
+	} catch (error) {
+		mainProc.error(`Error while getting zap client alerts of client ${clientId}: ${error}`);
+		return undefined;
+	}
+}
+
+export async function getClientAlertsByRisk(clientId: string): Promise<TAlertsByRisk | undefined> {
+	if (!zapClients.has(clientId)) {
+		mainProc.error(`Get client alert by risk with wrong id: ${clientId}`);
+		return undefined;
+	}
+	try {
+		// Get alerts by risk result
+		const alertsByRiskResult: Record<RiskLevel, Record<string, TAlertDetail[]>[]>[] = (await zapClients.get(clientId).requestPromise("/alert/view/alertsByRisk/", {})).alertsByRisk;
+
+		const alertsByRiskResultTransformed: TAlertsByRisk = {};
+		// Transform alerts by risk result
+		alertsByRiskResult.forEach((typeAlertObj) => {
+			Object.entries(typeAlertObj).forEach(([key, riskObjArray]) => {
+				if (isInRiskLevelEnum(key)) {
+					const transformedValue: TRisk[] = [];
+					riskObjArray.forEach((riskObj) => {
+						const riskKey = Object.keys(riskObj)[0];
+						const riskValueArr = riskObj[riskKey];
+						transformedValue.push({
+							key: riskKey,
+							value: riskValueArr,
+						});
+					});
+					alertsByRiskResultTransformed[key] = transformedValue;
+				}
+			});
+		});
+		return alertsByRiskResultTransformed;
+	} catch (error) {
+		mainProc.error(`Error while getting zap client alert by risk of client ${clientId}: ${error}`);
+		return undefined;
+	}
+}
+
 // BEGIN ZAP SPIDER
 export async function spiderStart(clientId: string | undefined, url: string, config: any): Promise<{ scanId: string; clientId: string } | undefined> {
 	let createNewClient = false;
@@ -148,15 +196,39 @@ export async function spiderResults(clientId: string, scanId: string, offset?: n
 	}
 }
 
-export async function spiderFullResults(clientId: string, scanId: string): Promise<[{ urlsInScope: any[] }, { urlsOutOfScope: any[] }, { urlsIoError: any[] }] | undefined> {
+export async function spiderFullResults(
+	clientId: string,
+	scanId: string,
+): Promise<
+	| {
+			urlsInScope: any[];
+			urlsOutOfScope: any[];
+			urlsIoError: any[];
+	  }
+	| undefined
+> {
 	if (!zapClients.has(clientId)) {
 		mainProc.error(`Get spider full results with wrong id: ${clientId}`);
 		return undefined;
 	}
 
 	try {
-		const results = (await zapClients.get(clientId).spider.fullResults(scanId)).fullResults;
-		return results;
+		const results: [
+			{
+				urlsInScope: any[];
+			},
+			{
+				urlsOutOfScope: string[];
+			},
+			{
+				urlsIoError: any[];
+			},
+		] = (await zapClients.get(clientId).spider.fullResults(scanId)).fullResults;
+		return {
+			urlsInScope: results[0].urlsInScope,
+			urlsOutOfScope: results[1].urlsOutOfScope,
+			urlsIoError: results[2].urlsIoError,
+		};
 	} catch (err) {
 		mainProc.error(`Error while fetching zap spider full results of client ${clientId}: ${err}`);
 		return undefined;
@@ -244,7 +316,14 @@ export async function ajaxResults(clientId: string, offset?: number): Promise<an
 	}
 }
 
-export async function ajaxFullResults(clientId: string): Promise<{ inScope: any[]; outOfScope: any[]; errors: any[] } | undefined> {
+export async function ajaxFullResults(clientId: string): Promise<
+	| {
+			inScope: any[];
+			outOfScope: any[];
+			errors: any[];
+	  }
+	| undefined
+> {
 	if (!zapClients.has(clientId)) {
 		mainProc.error(`Get ajax full result with wrong id: ${clientId}`);
 		return undefined;
@@ -313,7 +392,7 @@ export async function passiveStart(url: string, exploreType: "spider" | "ajax", 
 	}
 }
 
-export function passiveStatusStream(clientId: string, exploreType: "spider" | "ajax"): Observable<{ status: string | TZapAjaxStreamStatus | "explored", recordsToScan?: string }> | undefined {
+export function passiveStatusStream(clientId: string, exploreType: "spider" | "ajax"): Observable<{ status: string | TZapAjaxStreamStatus | "explored"; recordsToScan?: string }> | undefined {
 	if (!zapClients.has(clientId)) {
 		mainProc.error(`Get passive status with wrong id: ${clientId}`);
 		return undefined;
@@ -337,7 +416,7 @@ export function passiveStatusStream(clientId: string, exploreType: "spider" | "a
 
 	const passiveStatus$ = timer(ZAP_POLL_DELAY, ZAP_POLL_INTERVAL).pipe(
 		switchMap(() => from(client.pscan.recordsToScan()) as Observable<{ recordsToScan: string }>),
-		map((val: { status: "explored", recordsToScan: string }) => {
+		map((val: { status: "explored"; recordsToScan: string }) => {
 			val.status = "explored";
 			return val;
 		}),
@@ -348,20 +427,6 @@ export function passiveStatusStream(clientId: string, exploreType: "spider" | "a
 	);
 
 	return concat(exploreStatus$, passiveStatus$);
-}
-
-export async function passiveAlerts(clientId: string): Promise<any[] | undefined> {
-	if (!zapClients.has(clientId)) {
-		mainProc.error(`Get passive full results with wrong id: ${clientId}`);
-		return undefined;
-	}
-
-	try {
-		return (await zapClients.get(clientId).requestPromise("/alert/view/alerts/", {})).alerts;
-	} catch (error) {
-		mainProc.error(`Error while getting zap passive full results of client ${clientId}: ${error}`);
-		return undefined;
-	}
 }
 // END ZAP PASSIVE
 
@@ -426,54 +491,6 @@ export async function activeScanProgress(clientId: string, scanId: string, offse
 		return offset ? results.slice(offset) : results;
 	} catch (error) {
 		mainProc.error(`Error while getting zap active scan progress of client ${clientId}: ${error}`);
-		return undefined;
-	}
-}
-
-export async function activeAlertsByRisk(clientId: string): Promise<TAlertsByRisk | undefined> {
-	if (!zapClients.has(clientId)) {
-		mainProc.error(`Get active alert by risk with wrong id: ${clientId}`);
-		return undefined;
-	}
-	try {
-		// Get alerts by risk result
-		const alertsByRiskResult: Record<RiskLevel, Record<string, TAlertDetail[]>[]>[] = (await zapClients.get(clientId).requestPromise("/alert/view/alertsByRisk/", {})).alertsByRisk;
-
-		const alertsByRiskResultTransformed: TAlertsByRisk = {};
-		// Transform alerts by risk result
-		alertsByRiskResult.forEach((typeAlertObj) => {
-			Object.entries(typeAlertObj).forEach(([key, riskObjArray]) => {
-				if (isInRiskLevelEnum(key)) {
-					const transformedValue: TRisk[] = [];
-					riskObjArray.forEach((riskObj) => {
-						const riskKey = Object.keys(riskObj)[0];
-						const riskValueArr = riskObj[riskKey];
-						transformedValue.push({
-							key: riskKey,
-							value: riskValueArr,
-						});
-					});
-					alertsByRiskResultTransformed[key] = transformedValue;
-				}
-			});
-		});
-		return alertsByRiskResultTransformed;
-	} catch (error) {
-		mainProc.error(`Error while getting zap active alert by risk of client ${clientId}: ${error}`);
-		return undefined;
-	}
-}
-
-export async function activeAlerts(clientId: string): Promise<any[] | undefined> {
-	if (!zapClients.has(clientId)) {
-		mainProc.error(`Get active full results with wrong id: ${clientId}`);
-		return undefined;
-	}
-
-	try {
-		return (await zapClients.get(clientId).requestPromise("/alert/view/alerts/", {})).alerts;
-	} catch (error) {
-		mainProc.error(`Error while getting zap active full results of client ${clientId}: ${error}`);
 		return undefined;
 	}
 }

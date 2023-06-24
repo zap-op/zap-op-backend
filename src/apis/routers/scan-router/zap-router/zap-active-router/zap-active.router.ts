@@ -9,7 +9,7 @@ import { activeSharedStatusStream, activeStartAndMonitor } from "../../../../../
 import { mainProc, userSession } from "../../../../../services/logging.service";
 import { isValidObjectId } from "mongoose";
 import { serializeSSEEvent } from "../../../../../utils/network";
-import { activeAlerts, activeScanProgress } from "../../../../../services/zapClient.service";
+import { activeScanProgress } from "../../../../../services/zapClient.service";
 
 export function getZapActiveRouter(): Router {
 	const zapActiveRouter = Router();

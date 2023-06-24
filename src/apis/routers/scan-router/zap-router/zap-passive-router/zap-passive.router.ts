@@ -9,7 +9,6 @@ import { passiveSharedStatusStream, passiveStartAndMonitor } from "../../../../.
 import { mainProc, userSession } from "../../../../../services/logging.service";
 import { isValidObjectId } from "mongoose";
 import { serializeSSEEvent } from "../../../../../utils/network";
-import { passiveAlerts } from "../../../../../services/zapClient.service";
 
 export function getZapPassiveRouter(): Router {
 	const zapPassiveRouter = Router();

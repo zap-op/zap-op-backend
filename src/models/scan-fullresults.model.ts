@@ -50,10 +50,10 @@ export const zapSpiderScanFullResultsModel = scanFullResultsModel.discriminator<
 				default: [],
 			},
 			urlsOutOfScope: {
-				type: [Schema.Types.Mixed],
+				type: [Schema.Types.String],
 				default: [],
 			},
-			urlsError: {
+			urlsIoError: {
 				type: [Schema.Types.Mixed],
 				default: [],
 			},
@@ -65,15 +65,15 @@ export const zapAjaxScanFullResultsModel = scanFullResultsModel.discriminator<TZ
 	FULL_RESULT_TYPE.ZAP.AJAX,
 	new database!.Schema<TZapAjaxScanFullResultsModel>({
 		fullResults: {
-			urlsInScope: {
+			inScope: {
 				type: [Schema.Types.Mixed],
 				default: [],
 			},
-			urlsOutOfScope: {
+			outOfScope: {
 				type: [Schema.Types.Mixed],
 				default: [],
 			},
-			urlsError: {
+			errors: {
 				type: [Schema.Types.Mixed],
 				default: [],
 			},
@@ -85,7 +85,11 @@ export const zapPassiveScanFullResultsModel = scanFullResultsModel.discriminator
 	FULL_RESULT_TYPE.ZAP.PASSIVE,
 	new database!.Schema<TZapPassiveScanFullResultsModel>({
 		fullResults: {
-			data: {
+			alertsByRisk: {
+				type: Schema.Types.Mixed,
+				default: {},
+			},
+			alerts: {
 				type: [Schema.Types.Mixed],
 				default: [],
 			},

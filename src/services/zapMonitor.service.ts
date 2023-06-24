@@ -8,13 +8,12 @@ import {
 	ajaxFullResults,
 	passiveStart,
 	passiveStatusStream,
-	passiveAlerts,
 	activeStart,
 	activeStatusStream,
 	stopZapClient,
 	sharedClientId,
-	activeAlertsByRisk,
-	activeAlerts,
+	getClientAlerts,
+	getClientAlertsByRisk,
 } from "./zapClient.service";
 import { BehaviorSubject, Connectable, connectable, distinctUntilChanged, finalize, identity, Subject, takeUntil, tap } from "rxjs";
 import { mainProc } from "./logging.service";
@@ -48,13 +47,18 @@ export async function spiderStartAndMonitor(sessionId: ObjectId | null, url: str
 		return undefined;
 	}
 
-	const monitorId: TMonitorSessionId = { clientId: startResult.clientId, scanId: startResult.scanId };
+	const { clientId, scanId } = startResult;
+
+	const monitorId: TMonitorSessionId = {
+		clientId,
+		scanId,
+	};
 	const monitorHash = genSHA512(monitorId);
 
 	const stopSignal$ = new Subject<boolean>();
 	let done = false;
 
-	const rawStatus$ = spiderStatusStream(sharedClientId, startResult.scanId);
+	const rawStatus$ = spiderStatusStream(sharedClientId, scanId);
 	if (!rawStatus$) {
 		mainProc.error("Failed to get spider status stream, nothing to monitor");
 		return undefined;
@@ -72,9 +76,9 @@ export async function spiderStartAndMonitor(sessionId: ObjectId | null, url: str
 				}
 
 				if (sessionId !== null) {
-					const fullResults = await spiderFullResults(sharedClientId, startResult.scanId);
+					const fullResults = await spiderFullResults(sharedClientId, scanId);
 					if (!fullResults) {
-						mainProc.error(`Failed to get spider full results of client ${startResult.clientId}, scanId ${startResult.scanId}`);
+						mainProc.error(`Failed to get spider full results of client ${clientId}, scanId ${scanId}`);
 						await scanSessionModel
 							.findByIdAndUpdate(sessionId, {
 								status: {
@@ -89,11 +93,7 @@ export async function spiderStartAndMonitor(sessionId: ObjectId | null, url: str
 					} else {
 						const fullResultsDoc = new zapSpiderScanFullResultsModel({
 							sessionPop: sessionId,
-							fullResults: {
-								urlsInScope: fullResults[0].urlsInScope,
-								urlsOutOfScope: fullResults[1].urlsOutOfScope,
-								urlsError: fullResults[2].urlsIoError,
-							},
+							fullResults,
 						});
 						await fullResultsDoc.save().catch((error) => {
 							mainProc.error(`Error while saving spider full results: ${error}`);
@@ -114,7 +114,7 @@ export async function spiderStartAndMonitor(sessionId: ObjectId | null, url: str
 			}),
 			emitDistinct ? distinctUntilChanged((prev, cur) => prev.status === cur.status) : identity,
 			finalize(async () => {
-				await spiderStop(sharedClientId, startResult.scanId, removeOnDone);
+				await spiderStop(sharedClientId, scanId, removeOnDone);
 				monitoringSessions.delete(monitorHash);
 			}),
 		),
@@ -158,7 +158,10 @@ export async function ajaxStartAndMonitor(sessionId: ObjectId, url: string, conf
 		return undefined;
 	}
 
-	const monitorId: TMonitorSessionId = { clientId, scanId: "0" };
+	const monitorId: TMonitorSessionId = {
+		clientId,
+		scanId: "0",
+	};
 	const monitorHash = genSHA512(monitorId);
 
 	const stopSignal$ = new Subject<boolean>();
@@ -198,11 +201,7 @@ export async function ajaxStartAndMonitor(sessionId: ObjectId, url: string, conf
 				} else {
 					const fullResultsDoc = new zapAjaxScanFullResultsModel({
 						sessionPop: sessionId,
-						fullResults: {
-							urlsInScope: fullResults.inScope,
-							urlsOutOfScope: fullResults.outOfScope,
-							urlsError: fullResults.errors,
-						},
+						fullResults,
 					});
 					await fullResultsDoc.save().catch((error) => {
 						mainProc.error(`Error while saving ajax full results: ${error}`);
@@ -290,8 +289,9 @@ export async function passiveStartAndMonitor(sessionId: ObjectId, url: string, e
 					return;
 				}
 
-				const alerts = await passiveAlerts(clientId);
-				if (!alerts) {
+				const alertsResults = await getClientAlerts(clientId);
+				const alertByRiskResults = await getClientAlertsByRisk(clientId);
+				if (!alertsResults || !alertByRiskResults) {
 					mainProc.error(`Failed to get passive full results of client ${clientId}`);
 					await scanSessionModel
 						.findByIdAndUpdate(sessionId, {
@@ -308,7 +308,8 @@ export async function passiveStartAndMonitor(sessionId: ObjectId, url: string, e
 					const fullResultsDoc = new zapPassiveScanFullResultsModel({
 						sessionPop: sessionId,
 						fullResults: {
-							data: alerts,
+							alertsByRisk: alertByRiskResults,
+							alerts: alertsResults,
 						},
 					});
 					await fullResultsDoc.save().catch((error) => {
@@ -335,7 +336,11 @@ export async function passiveStartAndMonitor(sessionId: ObjectId, url: string, e
 			}),
 		),
 		{
-			connector: () => new BehaviorSubject({ status: "0", recordsToScan: undefined }),
+			connector: () =>
+				new BehaviorSubject({
+					status: "0",
+					recordsToScan: undefined,
+				}),
 			resetOnDisconnect: false,
 		},
 	);
@@ -415,8 +420,8 @@ export async function activeStartAndMonitor(
 					return;
 				}
 
-				const alertsResults = await activeAlerts(clientId);
-				const alertByRiskResults = await activeAlertsByRisk(clientId);
+				const alertsResults = await getClientAlerts(clientId);
+				const alertByRiskResults = await getClientAlertsByRisk(clientId);
 				if (!alertsResults || !alertByRiskResults) {
 					mainProc.error(`Failed to get active full results of client ${clientId}`);
 					await scanSessionModel
