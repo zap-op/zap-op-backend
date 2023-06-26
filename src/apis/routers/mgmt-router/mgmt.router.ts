@@ -31,14 +31,19 @@ export function getMgmtRouter(): Router {
 	};
 
 	mgmtRouter.get("/targets", async (req: JWTRequest, res) => {
-		const targets = await targetModel
-			.find({
-				userId: req.accessToken!.userId,
-			})
-			.sort({
-				updatedAt: -1,
-			});
-		res.status(200).json(targets);
+		try {
+			const targets = await targetModel
+				.find({
+					userId: req.accessToken!.userId,
+				})
+				.sort({
+					updatedAt: -1,
+				});
+			res.status(200).json(targets);
+		} catch (error) {
+			mainProc.error(`Error while getting targets: ${error}`);
+			res.status(500).send(MGMT_STATUS.TARGET_GET_FAILED);
+		}
 	});
 
 	mgmtRouter.post("/target", validator.validate({ body: postTargetSchema }), async (req: JWTRequest, res) => {
@@ -97,18 +102,23 @@ export function getMgmtRouter(): Router {
 	});
 
 	mgmtRouter.get("/scanSessions", async (req: JWTRequest, res) => {
-		const scanSessions = await scanSessionModel
-			.find({
-				userPop: req.accessToken!.userId,
-			})
-			.populate<{
-				targetPop: TTargetModel;
-			}>("targetPop", "name target tag")
-			.sort({
-				updatedAt: -1,
-			})
-			.exec();
-		res.status(200).json(scanSessions);
+		try {
+			const scanSessions = await scanSessionModel
+				.find({
+					userPop: req.accessToken!.userId,
+				})
+				.populate<{
+					targetPop: TTargetModel;
+				}>("targetPop", "name target tag")
+				.sort({
+					updatedAt: -1,
+				})
+				.exec();
+			res.status(200).json(scanSessions);
+		} catch (error) {
+			mainProc.error(`Error while getting sessions: ${error}`);
+			res.status(500).send(MGMT_STATUS.SESSION_GET_FAILED);
+		}
 	});
 
 	return mgmtRouter;

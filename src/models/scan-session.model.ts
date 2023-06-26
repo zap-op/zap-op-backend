@@ -56,7 +56,7 @@ export const zapSpiderScanSessionModel = scanSessionModel.discriminator<TZapSpid
 			maxChildren: {
 				type: Schema.Types.Number,
 				min: 0,
-				default: 1,
+				default: 0,
 			},
 			recurse: {
 				type: Schema.Types.Boolean,
@@ -105,7 +105,7 @@ export const zapPassiveScanSessionModel = scanSessionModel.discriminator<TZapPas
 			maxChildren: {
 				type: Schema.Types.Number,
 				min: 0,
-				default: 1,
+				default: 0,
 			},
 			recurse: {
 				type: Schema.Types.Boolean,
@@ -148,7 +148,7 @@ export const zapActiveScanSessionModel = scanSessionModel.discriminator<TZapActi
 			maxChildren: {
 				type: Schema.Types.Number,
 				min: 0,
-				default: 1,
+				default: 0,
 			},
 			recurse: {
 				type: Schema.Types.Boolean,
