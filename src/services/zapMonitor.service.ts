@@ -56,7 +56,7 @@ export async function spiderStartAndMonitor(sessionId: ObjectId | null, url: str
 	const monitorHash = genSHA512(monitorId);
 
 	const stopSignal$ = new Subject<boolean>();
-	let done = false;
+	let savedToDb = false;
 
 	const rawStatus$ = spiderStatusStream(sharedClientId, scanId);
 	if (!rawStatus$) {
@@ -70,46 +70,47 @@ export async function spiderStartAndMonitor(sessionId: ObjectId | null, url: str
 			tap(async (val) => {
 				if (parseInt(val.status) !== 100) return;
 
-				if (!done) {
-					done = true;
+				if (!savedToDb) {
+					if (sessionId !== null) {
+						const fullResults = await spiderFullResults(sharedClientId, scanId);
+						if (!fullResults) {
+							mainProc.error(`Failed to get spider full results of client ${clientId}, scanId ${scanId}`);
+							await scanSessionModel
+								.findByIdAndUpdate(sessionId, {
+									status: {
+										state: ScanState.FAILED,
+										message: "Failed to get spider full results.",
+									},
+								})
+								.exec()
+								.catch((error) => {
+									mainProc.error(`Error while update scan state to spider session: ${error}`);
+								});
+						} else {
+							const fullResultsDoc = new zapSpiderScanFullResultsModel({
+								sessionPop: sessionId,
+								fullResults,
+							});
+							await fullResultsDoc.save().catch((error) => {
+								mainProc.error(`Error while saving spider full results: ${error}`);
+							});
+							await scanSessionModel
+								.findByIdAndUpdate(sessionId, {
+									status: {
+										state: ScanState.SUCCESSFUL,
+									},
+								})
+								.exec()
+								.catch((error) => {
+									mainProc.error(`Error while update scan state to spider session: ${error}`);
+								});
+						}
+					}
+
+					savedToDb = true;
 					return;
 				}
 
-				if (sessionId !== null) {
-					const fullResults = await spiderFullResults(sharedClientId, scanId);
-					if (!fullResults) {
-						mainProc.error(`Failed to get spider full results of client ${clientId}, scanId ${scanId}`);
-						await scanSessionModel
-							.findByIdAndUpdate(sessionId, {
-								status: {
-									state: ScanState.FAILED,
-									message: "Failed to get spider full results.",
-								},
-							})
-							.exec()
-							.catch((error) => {
-								mainProc.error(`Error while update scan state to spider session: ${error}`);
-							});
-					} else {
-						const fullResultsDoc = new zapSpiderScanFullResultsModel({
-							sessionPop: sessionId,
-							fullResults,
-						});
-						await fullResultsDoc.save().catch((error) => {
-							mainProc.error(`Error while saving spider full results: ${error}`);
-						});
-						await scanSessionModel
-							.findByIdAndUpdate(sessionId, {
-								status: {
-									state: ScanState.SUCCESSFUL,
-								},
-							})
-							.exec()
-							.catch((error) => {
-								mainProc.error(`Error while update scan state to spider session: ${error}`);
-							});
-					}
-				}
 				stopSignal$.next(true);
 			}),
 			emitDistinct ? distinctUntilChanged((prev, cur) => prev.status === cur.status) : identity,
@@ -165,7 +166,7 @@ export async function ajaxStartAndMonitor(sessionId: ObjectId, url: string, conf
 	const monitorHash = genSHA512(monitorId);
 
 	const stopSignal$ = new Subject<boolean>();
-	let done = false;
+	let savedToDb = false;
 
 	const rawStatus$ = ajaxStatusStream(clientId);
 	if (!rawStatus$) {
@@ -179,43 +180,43 @@ export async function ajaxStartAndMonitor(sessionId: ObjectId, url: string, conf
 			tap(async (val) => {
 				if (val.status !== "stopped") return;
 
-				if (!done) {
-					done = true;
-					return;
-				}
+				if (!savedToDb) {
+					const fullResults = await ajaxFullResults(clientId);
+					if (!fullResults) {
+						mainProc.error(`Failed to get ajax full results of client ${clientId}`);
+						await scanSessionModel
+							.findByIdAndUpdate(sessionId, {
+								status: {
+									state: ScanState.FAILED,
+									message: "Failed to get ajax full results.",
+								},
+							})
+							.exec()
+							.catch((error) => {
+								mainProc.error(`Error while update scan state to ajax session: ${error}`);
+							});
+					} else {
+						const fullResultsDoc = new zapAjaxScanFullResultsModel({
+							sessionPop: sessionId,
+							fullResults,
+						});
+						await fullResultsDoc.save().catch((error) => {
+							mainProc.error(`Error while saving ajax full results: ${error}`);
+						});
+						await scanSessionModel
+							.findByIdAndUpdate(sessionId, {
+								status: {
+									state: ScanState.SUCCESSFUL,
+								},
+							})
+							.exec()
+							.catch((error) => {
+								mainProc.error(`Error while update scan state to ajax session: ${error}`);
+							});
+					}
 
-				const fullResults = await ajaxFullResults(clientId);
-				if (!fullResults) {
-					mainProc.error(`Failed to get ajax full results of client ${clientId}`);
-					await scanSessionModel
-						.findByIdAndUpdate(sessionId, {
-							status: {
-								state: ScanState.FAILED,
-								message: "Failed to get ajax full results.",
-							},
-						})
-						.exec()
-						.catch((error) => {
-							mainProc.error(`Error while update scan state to ajax session: ${error}`);
-						});
-				} else {
-					const fullResultsDoc = new zapAjaxScanFullResultsModel({
-						sessionPop: sessionId,
-						fullResults,
-					});
-					await fullResultsDoc.save().catch((error) => {
-						mainProc.error(`Error while saving ajax full results: ${error}`);
-					});
-					await scanSessionModel
-						.findByIdAndUpdate(sessionId, {
-							status: {
-								state: ScanState.SUCCESSFUL,
-							},
-						})
-						.exec()
-						.catch((error) => {
-							mainProc.error(`Error while update scan state to ajax session: ${error}`);
-						});
+					savedToDb = true;
+					return;
 				}
 
 				stopSignal$.next(true);
@@ -276,7 +277,7 @@ export async function passiveStartAndMonitor(sessionId: ObjectId, url: string, e
 	}
 
 	const stopSignal$ = new Subject<boolean>();
-	let done = false;
+	let savedToDb = false;
 
 	const status$ = connectable(
 		rawStatus$.pipe(
@@ -284,47 +285,47 @@ export async function passiveStartAndMonitor(sessionId: ObjectId, url: string, e
 			tap(async (val) => {
 				if (val.recordsToScan === undefined || parseInt(val.recordsToScan) !== 0) return;
 
-				if (!done) {
-					done = true;
-					return;
-				}
+				if (!savedToDb) {
+					const alertsResults = await getClientAlerts(clientId);
+					const alertByRiskResults = await getClientAlertsByRisk(clientId);
+					if (!alertsResults || !alertByRiskResults) {
+						mainProc.error(`Failed to get passive full results of client ${clientId}`);
+						await scanSessionModel
+							.findByIdAndUpdate(sessionId, {
+								status: {
+									state: ScanState.FAILED,
+									message: "Failed to get passive full results.",
+								},
+							})
+							.exec()
+							.catch((error) => {
+								mainProc.error(`Error while update scan state to passive session: ${error}`);
+							});
+					} else {
+						const fullResultsDoc = new zapPassiveScanFullResultsModel({
+							sessionPop: sessionId,
+							fullResults: {
+								alertsByRisk: alertByRiskResults,
+								alerts: alertsResults,
+							},
+						});
+						await fullResultsDoc.save().catch((error) => {
+							mainProc.error(`Error while saving passive full results: ${error}`);
+						});
+						await scanSessionModel
+							.findByIdAndUpdate(sessionId, {
+								status: {
+									state: ScanState.SUCCESSFUL,
+								},
+							})
+							.exec()
+							.catch((error) => {
+								mainProc.error(`Error while update scan state to passive session: ${error}`);
+							});
+					}
 
-				const alertsResults = await getClientAlerts(clientId);
-				const alertByRiskResults = await getClientAlertsByRisk(clientId);
-				if (!alertsResults || !alertByRiskResults) {
-					mainProc.error(`Failed to get passive full results of client ${clientId}`);
-					await scanSessionModel
-						.findByIdAndUpdate(sessionId, {
-							status: {
-								state: ScanState.FAILED,
-								message: "Failed to get passive full results.",
-							},
-						})
-						.exec()
-						.catch((error) => {
-							mainProc.error(`Error while update scan state to passive session: ${error}`);
-						});
-				} else {
-					const fullResultsDoc = new zapPassiveScanFullResultsModel({
-						sessionPop: sessionId,
-						fullResults: {
-							alertsByRisk: alertByRiskResults,
-							alerts: alertsResults,
-						},
-					});
-					await fullResultsDoc.save().catch((error) => {
-						mainProc.error(`Error while saving passive full results: ${error}`);
-					});
-					await scanSessionModel
-						.findByIdAndUpdate(sessionId, {
-							status: {
-								state: ScanState.SUCCESSFUL,
-							},
-						})
-						.exec()
-						.catch((error) => {
-							mainProc.error(`Error while update scan state to passive session: ${error}`);
-						});
+					savedToDb = true;
+					return;
 				}
 
 				stopSignal$.next(true);
@@ -401,7 +402,7 @@ export async function activeStartAndMonitor(
 	const monitorHash = genSHA512(monitorId);
 
 	const stopSignal$ = new Subject<boolean>();
-	let done = false;
+	let savedToDb = false;
 
 	const rawStatus$ = activeStatusStream(clientId, scanId);
 	if (!rawStatus$) {
@@ -415,47 +416,47 @@ export async function activeStartAndMonitor(
 			tap(async (val) => {
 				if (parseInt(val.status) !== 100) return;
 
-				if (!done) {
-					done = true;
-					return;
-				}
+				if (!savedToDb) {
+					const alertsResults = await getClientAlerts(clientId);
+					const alertByRiskResults = await getClientAlertsByRisk(clientId);
+					if (!alertsResults || !alertByRiskResults) {
+						mainProc.error(`Failed to get active full results of client ${clientId}`);
+						await scanSessionModel
+							.findByIdAndUpdate(sessionId, {
+								status: {
+									state: ScanState.FAILED,
+									message: "Failed to get active full results.",
+								},
+							})
+							.exec()
+							.catch((error) => {
+								mainProc.error(`Error while update scan state to active session: ${error}`);
+							});
+					} else {
+						const fullResultsDoc = new zapActiveScanFullResultsModel({
+							sessionPop: sessionId,
+							fullResults: {
+								alertsByRisk: alertByRiskResults,
+								alerts: alertsResults,
+							},
+						});
+						await fullResultsDoc.save().catch((error) => {
+							mainProc.error(`Error while saving active full results: ${error}`);
+						});
+						await scanSessionModel
+							.findByIdAndUpdate(sessionId, {
+								status: {
+									state: ScanState.SUCCESSFUL,
+								},
+							})
+							.exec()
+							.catch((error) => {
+								mainProc.error(`Error while update scan state to active session: ${error}`);
+							});
+					}
 
-				const alertsResults = await getClientAlerts(clientId);
-				const alertByRiskResults = await getClientAlertsByRisk(clientId);
-				if (!alertsResults || !alertByRiskResults) {
-					mainProc.error(`Failed to get active full results of client ${clientId}`);
-					await scanSessionModel
-						.findByIdAndUpdate(sessionId, {
-							status: {
-								state: ScanState.FAILED,
-								message: "Failed to get active full results.",
-							},
-						})
-						.exec()
-						.catch((error) => {
-							mainProc.error(`Error while update scan state to active session: ${error}`);
-						});
-				} else {
-					const fullResultsDoc = new zapActiveScanFullResultsModel({
-						sessionPop: sessionId,
-						fullResults: {
-							alertsByRisk: alertByRiskResults,
-							alerts: alertsResults,
-						},
-					});
-					await fullResultsDoc.save().catch((error) => {
-						mainProc.error(`Error while saving active full results: ${error}`);
-					});
-					await scanSessionModel
-						.findByIdAndUpdate(sessionId, {
-							status: {
-								state: ScanState.SUCCESSFUL,
-							},
-						})
-						.exec()
-						.catch((error) => {
-							mainProc.error(`Error while update scan state to active session: ${error}`);
-						});
+					savedToDb = true;
+					return;
 				}
 
 				stopSignal$.next(true);
