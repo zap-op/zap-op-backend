@@ -15,7 +15,7 @@ import {
 	getClientAlerts,
 	getClientAlertsByRisk,
 } from "./zapClient.service";
-import { BehaviorSubject, Connectable, connectable, distinctUntilChanged, finalize, identity, Subject, takeUntil, tap } from "rxjs";
+import { BehaviorSubject, Connectable, connectable, delayWhen, distinctUntilChanged, finalize, from, identity, of, Subject, takeUntil, tap } from "rxjs";
 import { mainProc } from "./logging.service";
 import { genSHA512 } from "../utils/crypto";
 import { ObjectId } from "bson";
@@ -34,7 +34,7 @@ const monitoringSessions: Map<
 	TMonitorSessionIdHash,
 	{
 		status$: Connectable<{ status: string | TZapAjaxStreamStatus; recordsToScan?: string }>;
-		stopSignal$: Subject<boolean>;
+		stopMonitorSignal$: Subject<boolean>;
 	}
 > = new Map();
 
@@ -55,63 +55,68 @@ export async function spiderStartAndMonitor(sessionId: ObjectId | null, url: str
 	};
 	const monitorHash = genSHA512(monitorId);
 
-	const stopSignal$ = new Subject<boolean>();
-	let savedToDb = false;
-
 	const rawStatus$ = spiderStatusStream(sharedClientId, scanId);
 	if (!rawStatus$) {
 		mainProc.error("Failed to get spider status stream, nothing to monitor");
 		return undefined;
 	}
 
+	const stopMonitorSignal$ = new Subject<boolean>();
+	let resultSavedToDb = false;
+	type SpiderStatus = { status: string };
+
+	const saveResultToDb = (val: SpiderStatus): Promise<SpiderStatus> =>
+		new Promise(async (resolve) => {
+			const fullResults = await spiderFullResults(sharedClientId, scanId);
+			if (!fullResults) {
+				mainProc.error(`Failed to get spider full results of client ${clientId}, scanId ${scanId}`);
+				await scanSessionModel
+					.findByIdAndUpdate(sessionId, {
+						status: {
+							state: ScanState.FAILED,
+							message: "Failed to get spider full results.",
+						},
+					})
+					.exec()
+					.catch((error) => {
+						mainProc.error(`Error while update scan state to spider session: ${error}`);
+					});
+			} else {
+				const fullResultsDoc = new zapSpiderScanFullResultsModel({
+					sessionPop: sessionId,
+					fullResults,
+				});
+				await fullResultsDoc.save().catch((error) => {
+					mainProc.error(`Error while saving spider full results: ${error}`);
+				});
+				await scanSessionModel
+					.findByIdAndUpdate(sessionId, {
+						status: {
+							state: ScanState.SUCCESSFUL,
+						},
+					})
+					.exec()
+					.catch((error) => {
+						mainProc.error(`Error while update scan state to spider session: ${error}`);
+					});
+			}
+
+			resultSavedToDb = true;
+			resolve(val);
+		});
+
 	const status$ = connectable(
 		rawStatus$.pipe(
-			takeUntil(stopSignal$),
-			tap(async (val) => {
-				if (parseInt(val.status) !== 100) return;
+			takeUntil(stopMonitorSignal$),
+			delayWhen((val) => {
+				if (parseInt(val.status) !== 100 || sessionId === null) return of(val);
 
-				if (!savedToDb) {
-					if (sessionId !== null) {
-						const fullResults = await spiderFullResults(sharedClientId, scanId);
-						if (!fullResults) {
-							mainProc.error(`Failed to get spider full results of client ${clientId}, scanId ${scanId}`);
-							await scanSessionModel
-								.findByIdAndUpdate(sessionId, {
-									status: {
-										state: ScanState.FAILED,
-										message: "Failed to get spider full results.",
-									},
-								})
-								.exec()
-								.catch((error) => {
-									mainProc.error(`Error while update scan state to spider session: ${error}`);
-								});
-						} else {
-							const fullResultsDoc = new zapSpiderScanFullResultsModel({
-								sessionPop: sessionId,
-								fullResults,
-							});
-							await fullResultsDoc.save().catch((error) => {
-								mainProc.error(`Error while saving spider full results: ${error}`);
-							});
-							await scanSessionModel
-								.findByIdAndUpdate(sessionId, {
-									status: {
-										state: ScanState.SUCCESSFUL,
-									},
-								})
-								.exec()
-								.catch((error) => {
-									mainProc.error(`Error while update scan state to spider session: ${error}`);
-								});
-						}
-					}
-
-					savedToDb = true;
-					return;
+				if (resultSavedToDb) {
+					stopMonitorSignal$.next(true);
+					return of(val);
 				}
 
-				stopSignal$.next(true);
+				return from(saveResultToDb(val));
 			}),
 			emitDistinct ? distinctUntilChanged((prev, cur) => prev.status === cur.status) : identity,
 			finalize(async () => {
@@ -125,7 +130,7 @@ export async function spiderStartAndMonitor(sessionId: ObjectId | null, url: str
 		},
 	);
 
-	monitoringSessions.set(monitorHash, { status$, stopSignal$ });
+	monitoringSessions.set(monitorHash, { status$, stopMonitorSignal$ });
 	monitoringSessions.get(monitorHash)!.status$.connect();
 	monitoringSessions.get(monitorHash)!.status$.subscribe();
 
@@ -146,7 +151,7 @@ export function spiderSignalStop(scanId: string): void {
 		return;
 	}
 
-	monitoringSessions.get(monitorHash)!.stopSignal$.next(true);
+	monitoringSessions.get(monitorHash)!.stopMonitorSignal$.next(true);
 }
 // END ZAP SPIDER
 
@@ -165,61 +170,68 @@ export async function ajaxStartAndMonitor(sessionId: ObjectId, url: string, conf
 	};
 	const monitorHash = genSHA512(monitorId);
 
-	const stopSignal$ = new Subject<boolean>();
-	let savedToDb = false;
-
 	const rawStatus$ = ajaxStatusStream(clientId);
 	if (!rawStatus$) {
 		mainProc.error("Failed to get ajax status stream, nothing to monitor");
 		return undefined;
 	}
 
+	const stopMonitorSignal$ = new Subject<boolean>();
+	let resultSavedToDb = false;
+	type AjaxStatus = { status: TZapAjaxStreamStatus };
+
+	const saveResultToDb = (val: AjaxStatus): Promise<AjaxStatus> =>
+		new Promise(async (resolve) => {
+			const fullResults = await ajaxFullResults(clientId);
+			if (!fullResults) {
+				mainProc.error(`Failed to get ajax full results of client ${clientId}`);
+				await scanSessionModel
+					.findByIdAndUpdate(sessionId, {
+						status: {
+							state: ScanState.FAILED,
+							message: "Failed to get ajax full results.",
+						},
+					})
+					.exec()
+					.catch((error) => {
+						mainProc.error(`Error while update scan state to ajax session: ${error}`);
+					});
+			} else {
+				const fullResultsDoc = new zapAjaxScanFullResultsModel({
+					sessionPop: sessionId,
+					fullResults,
+				});
+				await fullResultsDoc.save().catch((error) => {
+					mainProc.error(`Error while saving ajax full results: ${error}`);
+				});
+				await scanSessionModel
+					.findByIdAndUpdate(sessionId, {
+						status: {
+							state: ScanState.SUCCESSFUL,
+						},
+					})
+					.exec()
+					.catch((error) => {
+						mainProc.error(`Error while update scan state to ajax session: ${error}`);
+					});
+			}
+
+			resultSavedToDb = true;
+			resolve(val);
+		});
+
 	const status$ = connectable(
 		rawStatus$.pipe(
-			takeUntil(stopSignal$),
-			tap(async (val) => {
-				if (val.status !== "stopped") return;
+			takeUntil(stopMonitorSignal$),
+			delayWhen((val) => {
+				if (val.status !== "stopped" || sessionId === null) return of(val);
 
-				if (!savedToDb) {
-					const fullResults = await ajaxFullResults(clientId);
-					if (!fullResults) {
-						mainProc.error(`Failed to get ajax full results of client ${clientId}`);
-						await scanSessionModel
-							.findByIdAndUpdate(sessionId, {
-								status: {
-									state: ScanState.FAILED,
-									message: "Failed to get ajax full results.",
-								},
-							})
-							.exec()
-							.catch((error) => {
-								mainProc.error(`Error while update scan state to ajax session: ${error}`);
-							});
-					} else {
-						const fullResultsDoc = new zapAjaxScanFullResultsModel({
-							sessionPop: sessionId,
-							fullResults,
-						});
-						await fullResultsDoc.save().catch((error) => {
-							mainProc.error(`Error while saving ajax full results: ${error}`);
-						});
-						await scanSessionModel
-							.findByIdAndUpdate(sessionId, {
-								status: {
-									state: ScanState.SUCCESSFUL,
-								},
-							})
-							.exec()
-							.catch((error) => {
-								mainProc.error(`Error while update scan state to ajax session: ${error}`);
-							});
-					}
-
-					savedToDb = true;
-					return;
+				if (resultSavedToDb) {
+					stopMonitorSignal$.next(true);
+					return of(val);
 				}
 
-				stopSignal$.next(true);
+				return from(saveResultToDb(val));
 			}),
 			emitDistinct ? distinctUntilChanged((prev, cur) => prev.status === cur.status) : identity,
 			finalize(async () => {
@@ -233,7 +245,7 @@ export async function ajaxStartAndMonitor(sessionId: ObjectId, url: string, conf
 		},
 	);
 
-	monitoringSessions.set(monitorHash, { status$, stopSignal$ });
+	monitoringSessions.set(monitorHash, { status$, stopMonitorSignal$ });
 	monitoringSessions.get(monitorHash)!.status$.connect();
 	monitoringSessions.get(monitorHash)!.status$.subscribe();
 
@@ -254,7 +266,7 @@ export function ajaxSignalStop(clientId: string): void {
 		return;
 	}
 
-	monitoringSessions.get(monitorHash)!.stopSignal$.next(true);
+	monitoringSessions.get(monitorHash)!.stopMonitorSignal$.next(true);
 }
 // END ZAP AJAX
 
@@ -276,59 +288,70 @@ export async function passiveStartAndMonitor(sessionId: ObjectId, url: string, e
 		return undefined;
 	}
 
-	const stopSignal$ = new Subject<boolean>();
-	let savedToDb = false;
+	const stopMonitorSignal$ = new Subject<boolean>();
+	let resultSavedToDb = false;
+	type PassiveStatus = {
+		status: string | TZapAjaxStreamStatus | "explored";
+		recordsToScan?: string;
+	};
+
+	const saveResultToDb = (val: PassiveStatus): Promise<PassiveStatus> =>
+		new Promise(async (resolve) => {
+			const alertsResults = await getClientAlerts(clientId);
+			const alertByRiskResults = await getClientAlertsByRisk(clientId);
+
+			if (!alertsResults || !alertByRiskResults) {
+				mainProc.error(`Failed to get passive full results of client ${clientId}`);
+				await scanSessionModel
+					.findByIdAndUpdate(sessionId, {
+						status: {
+							state: ScanState.FAILED,
+							message: "Failed to get passive full results.",
+						},
+					})
+					.exec()
+					.catch((error) => {
+						mainProc.error(`Error while update scan state to passive session: ${error}`);
+					});
+			} else {
+				const fullResultsDoc = new zapPassiveScanFullResultsModel({
+					sessionPop: sessionId,
+					fullResults: {
+						alertsByRisk: alertByRiskResults,
+						alerts: alertsResults,
+					},
+				});
+				await fullResultsDoc.save().catch((error) => {
+					mainProc.error(`Error while saving passive full results: ${error}`);
+				});
+				await scanSessionModel
+					.findByIdAndUpdate(sessionId, {
+						status: {
+							state: ScanState.SUCCESSFUL,
+						},
+					})
+					.exec()
+					.catch((error) => {
+						mainProc.error(`Error while update scan state to passive session: ${error}`);
+					});
+			}
+
+			resultSavedToDb = true;
+			resolve(val);
+		});
 
 	const status$ = connectable(
 		rawStatus$.pipe(
-			takeUntil(stopSignal$),
-			tap(async (val) => {
-				if (val.recordsToScan === undefined || parseInt(val.recordsToScan) !== 0) return;
+			takeUntil(stopMonitorSignal$),
+			delayWhen((val) => {
+				if (val.recordsToScan === undefined || parseInt(val.recordsToScan) !== 0 || sessionId === null) return of(val);
 
-				if (!savedToDb) {
-					const alertsResults = await getClientAlerts(clientId);
-					const alertByRiskResults = await getClientAlertsByRisk(clientId);
-					if (!alertsResults || !alertByRiskResults) {
-						mainProc.error(`Failed to get passive full results of client ${clientId}`);
-						await scanSessionModel
-							.findByIdAndUpdate(sessionId, {
-								status: {
-									state: ScanState.FAILED,
-									message: "Failed to get passive full results.",
-								},
-							})
-							.exec()
-							.catch((error) => {
-								mainProc.error(`Error while update scan state to passive session: ${error}`);
-							});
-					} else {
-						const fullResultsDoc = new zapPassiveScanFullResultsModel({
-							sessionPop: sessionId,
-							fullResults: {
-								alertsByRisk: alertByRiskResults,
-								alerts: alertsResults,
-							},
-						});
-						await fullResultsDoc.save().catch((error) => {
-							mainProc.error(`Error while saving passive full results: ${error}`);
-						});
-						await scanSessionModel
-							.findByIdAndUpdate(sessionId, {
-								status: {
-									state: ScanState.SUCCESSFUL,
-								},
-							})
-							.exec()
-							.catch((error) => {
-								mainProc.error(`Error while update scan state to passive session: ${error}`);
-							});
-					}
-
-					savedToDb = true;
-					return;
+				if (resultSavedToDb) {
+					stopMonitorSignal$.next(true);
+					return of(val);
 				}
 
-				stopSignal$.next(true);
+				return from(saveResultToDb(val));
 			}),
 			emitDistinct ? distinctUntilChanged((prev, cur) => prev.status === cur.status && prev.recordsToScan === cur.recordsToScan) : identity,
 			finalize(async () => {
@@ -346,7 +369,7 @@ export async function passiveStartAndMonitor(sessionId: ObjectId, url: string, e
 		},
 	);
 
-	monitoringSessions.set(monitorHash, { status$, stopSignal$ });
+	monitoringSessions.set(monitorHash, { status$, stopMonitorSignal$ });
 	monitoringSessions.get(monitorHash)!.status$.connect();
 	monitoringSessions.get(monitorHash)!.status$.subscribe();
 
@@ -367,7 +390,7 @@ export function passiveSignalStop(clientId: string): void {
 		return;
 	}
 
-	monitoringSessions.get(monitorHash)!.stopSignal$.next(true);
+	monitoringSessions.get(monitorHash)!.stopMonitorSignal$.next(true);
 }
 // END ZAP PASSIVE
 
@@ -401,65 +424,73 @@ export async function activeStartAndMonitor(
 	};
 	const monitorHash = genSHA512(monitorId);
 
-	const stopSignal$ = new Subject<boolean>();
-	let savedToDb = false;
-
 	const rawStatus$ = activeStatusStream(clientId, scanId);
 	if (!rawStatus$) {
 		mainProc.error("Failed to get active status stream, nothing to monitor");
 		return undefined;
 	}
 
+	const stopMonitorSignal$ = new Subject<boolean>();
+	let resultSavedToDb = false;
+	type ActiveStatus = { status: string };
+
+	const saveResultToDb = (val: ActiveStatus): Promise<ActiveStatus> =>
+		new Promise(async (resolve) => {
+			const alertsResults = await getClientAlerts(clientId);
+			const alertByRiskResults = await getClientAlertsByRisk(clientId);
+
+			if (!alertsResults || !alertByRiskResults) {
+				mainProc.error(`Failed to get active full results of client ${clientId}`);
+				await scanSessionModel
+					.findByIdAndUpdate(sessionId, {
+						status: {
+							state: ScanState.FAILED,
+							message: "Failed to get active full results.",
+						},
+					})
+					.exec()
+					.catch((error) => {
+						mainProc.error(`Error while update scan state to active session: ${error}`);
+					});
+			} else {
+				const fullResultsDoc = new zapActiveScanFullResultsModel({
+					sessionPop: sessionId,
+					fullResults: {
+						alertsByRisk: alertByRiskResults,
+						alerts: alertsResults,
+					},
+				});
+				await fullResultsDoc.save().catch((error) => {
+					mainProc.error(`Error while saving active full results: ${error}`);
+				});
+				await scanSessionModel
+					.findByIdAndUpdate(sessionId, {
+						status: {
+							state: ScanState.SUCCESSFUL,
+						},
+					})
+					.exec()
+					.catch((error) => {
+						mainProc.error(`Error while update scan state to active session: ${error}`);
+					});
+			}
+
+			resultSavedToDb = true;
+			resolve(val);
+		});
+
 	const status$ = connectable(
 		rawStatus$.pipe(
-			takeUntil(stopSignal$),
-			tap(async (val) => {
-				if (parseInt(val.status) !== 100) return;
+			takeUntil(stopMonitorSignal$),
+			delayWhen((val) => {
+				if (parseInt(val.status) !== 100 || sessionId === null) return of(val);
 
-				if (!savedToDb) {
-					const alertsResults = await getClientAlerts(clientId);
-					const alertByRiskResults = await getClientAlertsByRisk(clientId);
-					if (!alertsResults || !alertByRiskResults) {
-						mainProc.error(`Failed to get active full results of client ${clientId}`);
-						await scanSessionModel
-							.findByIdAndUpdate(sessionId, {
-								status: {
-									state: ScanState.FAILED,
-									message: "Failed to get active full results.",
-								},
-							})
-							.exec()
-							.catch((error) => {
-								mainProc.error(`Error while update scan state to active session: ${error}`);
-							});
-					} else {
-						const fullResultsDoc = new zapActiveScanFullResultsModel({
-							sessionPop: sessionId,
-							fullResults: {
-								alertsByRisk: alertByRiskResults,
-								alerts: alertsResults,
-							},
-						});
-						await fullResultsDoc.save().catch((error) => {
-							mainProc.error(`Error while saving active full results: ${error}`);
-						});
-						await scanSessionModel
-							.findByIdAndUpdate(sessionId, {
-								status: {
-									state: ScanState.SUCCESSFUL,
-								},
-							})
-							.exec()
-							.catch((error) => {
-								mainProc.error(`Error while update scan state to active session: ${error}`);
-							});
-					}
-
-					savedToDb = true;
-					return;
+				if (resultSavedToDb) {
+					stopMonitorSignal$.next(true);
+					return of(val);
 				}
 
-				stopSignal$.next(true);
+				return from(saveResultToDb(val));
 			}),
 			emitDistinct ? distinctUntilChanged((prev, cur) => prev.status === cur.status) : identity,
 			finalize(async () => {
@@ -473,7 +504,7 @@ export async function activeStartAndMonitor(
 		},
 	);
 
-	monitoringSessions.set(monitorHash, { status$, stopSignal$ });
+	monitoringSessions.set(monitorHash, { status$, stopMonitorSignal$ });
 	monitoringSessions.get(monitorHash)!.status$.connect();
 	monitoringSessions.get(monitorHash)!.status$.subscribe();
 
@@ -494,7 +525,7 @@ export function activeSignalStop(clientId: string, scanId: string): void {
 		return;
 	}
 
-	monitoringSessions.get(monitorHash)!.stopSignal$.next(true);
+	monitoringSessions.get(monitorHash)!.stopMonitorSignal$.next(true);
 }
 // END ZAP ACTIVE
 
