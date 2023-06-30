@@ -1,8 +1,9 @@
 import { Schema } from "mongoose";
 import { database } from "../services/database.service";
 import { TUserModel } from "../utils/types";
+import { isOnProduction } from "../utils/validator";
 
-export const USER_COLLECTION = "users" + (process.env.NODE_ENV === "development" ? "_tests" : "");
+export const USER_COLLECTION = "users" + (isOnProduction() ? "" : "_tests");
 
 export const userModel = database!.model<TUserModel>(
 	USER_COLLECTION,
