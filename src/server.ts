@@ -9,7 +9,7 @@ import { initRouter } from "./apis/route";
 import { ValidationError } from "express-json-validator-middleware";
 import { database } from "./services/database.service";
 import { AddressInfo } from "net";
-import { initZapClientShared } from "./services/zapClient.service";
+import { initZapClientShared, sharedClientId } from "./services/zapClient.service";
 import { isOnProduction } from "./utils/validator";
 import { zapGetAvailablePort } from "./services/zapMonitor.service";
 
@@ -18,7 +18,7 @@ setupProcessHooks();
 
 mainProc.info("Starting shared ZAP process");
 const zapPort = zapGetAvailablePort();
-await startZapProcess(ZAP_SESSION_TYPES.SHARED, zapPort);
+await startZapProcess(ZAP_SESSION_TYPES.SHARED, sharedClientId, zapPort);
 await initZapClientShared(zapPort);
 mainProc.info(`Shared ZAP process started and listening on port ${zapPort}`);
 

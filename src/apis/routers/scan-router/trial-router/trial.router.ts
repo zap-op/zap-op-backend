@@ -26,10 +26,10 @@ export function getTrialRouter(): Router {
 				null,
 				urlToScan,
 				{
-					maxChildren: 5,
+					maxChildren: 0,
 					recurse: true,
 					contextName: "",
-					subtreeOnly: false,
+					subtreeOnly: true,
 				},
 				true,
 				true,

@@ -34,7 +34,7 @@ export function getZapAjaxRouter(): Router {
 					},
 					subtreeOnly: {
 						type: "boolean",
-						default: false,
+						default: true,
 					},
 				},
 			},

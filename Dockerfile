@@ -1,5 +1,5 @@
 FROM owasp/zap2docker-stable:2.12.0 as zap
-FROM ubuntu:latest
+FROM ubuntu:23.04
 
 RUN apt-get update && apt-get upgrade -y
 RUN apt-get install -y git curl default-jre net-tools neovim

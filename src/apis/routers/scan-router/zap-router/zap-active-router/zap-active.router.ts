@@ -30,7 +30,7 @@ export function getZapActiveRouter(): Router {
 					maxChildren: {
 						type: "number",
 						minimum: 0,
-						default: 1,
+						default: 0,
 					},
 					recurse: {
 						type: "boolean",
@@ -42,7 +42,7 @@ export function getZapActiveRouter(): Router {
 					},
 					subtreeOnly: {
 						type: "boolean",
-						default: false,
+						default: true,
 					},
 				},
 			},
@@ -59,7 +59,7 @@ export function getZapActiveRouter(): Router {
 					},
 					subtreeOnly: {
 						type: "boolean",
-						default: false,
+						default: true,
 					},
 				},
 			},

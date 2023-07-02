@@ -15,7 +15,7 @@ import {
 	getClientAlerts,
 	getClientAlertsByRisk,
 } from "./zapClient.service";
-import { BehaviorSubject, Connectable, connectable, delayWhen, distinctUntilChanged, finalize, from, identity, of, Subject, takeUntil, tap } from "rxjs";
+import { BehaviorSubject, Connectable, connectable, distinctUntilChanged, exhaustMap, finalize, from, identity, mergeMap, of, Subject, switchMap, takeUntil, timer } from "rxjs";
 import { mainProc } from "./logging.service";
 import { genSHA512 } from "../utils/crypto";
 import { ObjectId } from "bson";
@@ -62,7 +62,6 @@ export async function spiderStartAndMonitor(sessionId: ObjectId | null, url: str
 	}
 
 	const stopMonitorSignal$ = new Subject<boolean>();
-	let resultSavedToDb = false;
 	type SpiderStatus = { status: string };
 
 	const saveResultToDb = (val: SpiderStatus): Promise<SpiderStatus> =>
@@ -101,21 +100,15 @@ export async function spiderStartAndMonitor(sessionId: ObjectId | null, url: str
 					});
 			}
 
-			resultSavedToDb = true;
+			stopMonitorSignal$.next(true);
 			resolve(val);
 		});
 
 	const status$ = connectable(
 		rawStatus$.pipe(
 			takeUntil(stopMonitorSignal$),
-			delayWhen((val) => {
+			exhaustMap((val) => {
 				if (parseInt(val.status) !== 100 || sessionId === null) return of(val);
-
-				if (resultSavedToDb) {
-					stopMonitorSignal$.next(true);
-					return of(val);
-				}
-
 				return from(saveResultToDb(val));
 			}),
 			emitDistinct ? distinctUntilChanged((prev, cur) => prev.status === cur.status) : identity,
@@ -177,7 +170,6 @@ export async function ajaxStartAndMonitor(sessionId: ObjectId, url: string, conf
 	}
 
 	const stopMonitorSignal$ = new Subject<boolean>();
-	let resultSavedToDb = false;
 	type AjaxStatus = { status: TZapAjaxStreamStatus };
 
 	const saveResultToDb = (val: AjaxStatus): Promise<AjaxStatus> =>
@@ -216,21 +208,15 @@ export async function ajaxStartAndMonitor(sessionId: ObjectId, url: string, conf
 					});
 			}
 
-			resultSavedToDb = true;
+			stopMonitorSignal$.next(true);
 			resolve(val);
 		});
 
 	const status$ = connectable(
 		rawStatus$.pipe(
 			takeUntil(stopMonitorSignal$),
-			delayWhen((val) => {
-				if (val.status !== "stopped" || sessionId === null) return of(val);
-
-				if (resultSavedToDb) {
-					stopMonitorSignal$.next(true);
-					return of(val);
-				}
-
+			exhaustMap((val) => {
+				if (val.status !== "stopped") return of(val);
 				return from(saveResultToDb(val));
 			}),
 			emitDistinct ? distinctUntilChanged((prev, cur) => prev.status === cur.status) : identity,
@@ -289,7 +275,7 @@ export async function passiveStartAndMonitor(sessionId: ObjectId, url: string, e
 	}
 
 	const stopMonitorSignal$ = new Subject<boolean>();
-	let resultSavedToDb = false;
+	let hangTimerSet = false;
 	type PassiveStatus = {
 		status: string | TZapAjaxStreamStatus | "explored";
 		recordsToScan?: string;
@@ -336,21 +322,27 @@ export async function passiveStartAndMonitor(sessionId: ObjectId, url: string, e
 					});
 			}
 
-			resultSavedToDb = true;
+			stopMonitorSignal$.next(true);
 			resolve(val);
 		});
 
 	const status$ = connectable(
 		rawStatus$.pipe(
 			takeUntil(stopMonitorSignal$),
-			delayWhen((val) => {
-				if (val.recordsToScan === undefined || parseInt(val.recordsToScan) !== 0 || sessionId === null) return of(val);
-
-				if (resultSavedToDb) {
-					stopMonitorSignal$.next(true);
+			mergeMap((val) => {
+				// Passive scans sometimes hang at 4 recordsToScan, so we wait for 5 minutes max
+				if (
+					val.recordsToScan === undefined ||
+					parseInt(val.recordsToScan) !== 4 || //
+					hangTimerSet
+				)
 					return of(val);
-				}
 
+				hangTimerSet = true;
+				return timer(5 * 60 * 1000).pipe(switchMap(() => of(Object.assign({}, val, { recordsToScan: "0" }))));
+			}),
+			exhaustMap((val) => {
+				if (val.recordsToScan === undefined || parseInt(val.recordsToScan) !== 0) return of(val);
 				return from(saveResultToDb(val));
 			}),
 			emitDistinct ? distinctUntilChanged((prev, cur) => prev.status === cur.status && prev.recordsToScan === cur.recordsToScan) : identity,
@@ -431,7 +423,6 @@ export async function activeStartAndMonitor(
 	}
 
 	const stopMonitorSignal$ = new Subject<boolean>();
-	let resultSavedToDb = false;
 	type ActiveStatus = { status: string };
 
 	const saveResultToDb = (val: ActiveStatus): Promise<ActiveStatus> =>
@@ -475,21 +466,15 @@ export async function activeStartAndMonitor(
 					});
 			}
 
-			resultSavedToDb = true;
+			stopMonitorSignal$.next(true);
 			resolve(val);
 		});
 
 	const status$ = connectable(
 		rawStatus$.pipe(
 			takeUntil(stopMonitorSignal$),
-			delayWhen((val) => {
-				if (parseInt(val.status) !== 100 || sessionId === null) return of(val);
-
-				if (resultSavedToDb) {
-					stopMonitorSignal$.next(true);
-					return of(val);
-				}
-
+			exhaustMap((val) => {
+				if (parseInt(val.status) !== 100) return of(val);
 				return from(saveResultToDb(val));
 			}),
 			emitDistinct ? distinctUntilChanged((prev, cur) => prev.status === cur.status) : identity,

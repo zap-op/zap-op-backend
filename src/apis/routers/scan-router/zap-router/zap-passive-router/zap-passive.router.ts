@@ -29,7 +29,7 @@ export function getZapPassiveRouter(): Router {
 					maxChildren: {
 						type: "number",
 						minimum: 0,
-						default: 1,
+						default: 0,
 					},
 					recurse: {
 						type: "boolean",
@@ -41,7 +41,7 @@ export function getZapPassiveRouter(): Router {
 					},
 					subtreeOnly: {
 						type: "boolean",
-						default: false,
+						default: true,
 					},
 				},
 			},
@@ -58,7 +58,7 @@ export function getZapPassiveRouter(): Router {
 					},
 					subtreeOnly: {
 						type: "boolean",
-						default: false,
+						default: true,
 					},
 				},
 			},

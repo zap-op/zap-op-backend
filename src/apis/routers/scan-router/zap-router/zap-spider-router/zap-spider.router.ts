@@ -27,7 +27,7 @@ export function getZapSpiderRouter(): Router {
 					maxChildren: {
 						type: "number",
 						minimum: 0,
-						default: 1,
+						default: 0,
 					},
 					recurse: {
 						type: "boolean",
@@ -39,7 +39,7 @@ export function getZapSpiderRouter(): Router {
 					},
 					subtreeOnly: {
 						type: "boolean",
-						default: false,
+						default: true,
 					},
 				},
 			},
@@ -127,10 +127,7 @@ export function getZapSpiderRouter(): Router {
 			}
 
 			const writer = status$.subscribe({
-				next: (status) => {
-					console.log("subscribe status", status);
-					return res.write(serializeSSEEvent("status", status));
-				},
+				next: (status) => res.write(serializeSSEEvent("status", status)),
 				error: (err) => res.write(serializeSSEEvent("error", err)),
 			});
 
@@ -158,8 +155,8 @@ export function getZapSpiderRouter(): Router {
 
 	zapSpiderRouter.get("/fullResults", async (req: JWTRequest, res) => {
 		const scanSession = req.query.scanSession;
-		if (typeof scanSession !== "string" || isNaN(parseInt(scanSession))) {
-			return res.status(400).send(SCAN_STATUS.INVALID_ID);
+		if (!scanSession || !isValidObjectId(scanSession)) {
+			return res.status(400).send(SCAN_STATUS.INVALID_SESSION);
 		}
 
 		const results = await zapSpiderScanFullResultsModel

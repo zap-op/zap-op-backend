@@ -35,9 +35,9 @@ export async function initZapClientShared(port: number): Promise<void> {
 
 async function newPrivateZapClient(): Promise<`${string}-${string}-${string}-${string}-${string}`> {
 	const port = zapGetAvailablePort();
-	await startZapProcess(ZAP_SESSION_TYPES.PRIVATE, port);
-	const client = initZapClient(port);
 	const clientId = crypto.randomUUID();
+	await startZapProcess(ZAP_SESSION_TYPES.PRIVATE, clientId, port);
+	const client = initZapClient(port);
 	zapClients.set(clientId, client);
 	return clientId;
 }
@@ -50,10 +50,10 @@ export async function stopZapClient(clientId: string): Promise<void> {
 
 	try {
 		await zapClients.get(clientId).core.shutdown();
-		mainProc.info("ZAP shut down after ajax scan");
+		mainProc.info(`ZAP client ${clientId} shut down after scan`);
 		zapClients.delete(clientId);
 	} catch (err) {
-		mainProc.error(`ZapClient: ${clientId}\nError while stopping zap client: ${err}`);
+		mainProc.error(`Error while stopping zap client ${clientId}: ${err}`);
 	}
 }
 
@@ -70,7 +70,7 @@ export async function getClientAlerts(clientId: string): Promise<any[] | undefin
 	}
 
 	try {
-		return (await zapClients.get(clientId).requestPromise("/alert/view/alerts/", {})).alerts;
+		return (await zapClients.get(clientId).core.alerts()).alerts;
 	} catch (error) {
 		mainProc.error(`Error while getting zap client alerts of client ${clientId}: ${error}`);
 		return undefined;
@@ -83,7 +83,6 @@ export async function getClientAlertsByRisk(clientId: string): Promise<TAlertsBy
 		return undefined;
 	}
 	try {
-		// Get alerts by risk result
 		const alertsByRiskResult: Record<RiskLevel, Record<string, TAlertDetail[]>[]>[] = (await zapClients.get(clientId).requestPromise("/alert/view/alertsByRisk/", {})).alertsByRisk;
 
 		const alertsByRiskResultTransformed: TAlertsByRisk = {};
@@ -124,6 +123,7 @@ export async function spiderStart(clientId: string | undefined, url: string, con
 
 	try {
 		const result = await zapClients.get(clientId).spider.scan(url, config.maxChildren, config.recurse, config.contextName, config.subtreeOnly);
+		mainProc.info(`Spider scan ${result.scan} of client ${clientId} started successfully`);
 		return { scanId: result.scan, clientId };
 	} catch (err) {
 		mainProc.error(`Error while init zap spider: ${err}`);
@@ -145,13 +145,13 @@ export async function spiderStop(clientId: string, scanId: string, removeScan?: 
 		const client = zapClients.get(clientId);
 
 		let res = await client.spider.stop(scanId);
-		if (res.Result === "OK") mainProc.info(`Scan ${scanId} of client ${clientId} stopped successfully`);
-		else mainProc.error(`Failed to stop scan ${scanId} of client ${clientId}`);
+		if (res.Result === "OK") mainProc.info(`Spider scan ${scanId} of client ${clientId} stopped successfully`);
+		else mainProc.error(`Failed to stop spider scan ${scanId} of client ${clientId}`);
 
 		if (removeScan) {
 			res = await client.spider.removeScan(scanId);
-			if (res.Result === "OK") mainProc.info(`Scan ${scanId} of client ${clientId} removed successfully`);
-			else mainProc.error(`Failed to remove scan ${scanId} of client ${clientId}`);
+			if (res.Result === "OK") mainProc.info(`Spider scan ${scanId} of client ${clientId} removed successfully`);
+			else mainProc.error(`Failed to remove spider scan ${scanId} of client ${clientId}`);
 		}
 	} catch (err) {
 		mainProc.error(`Error while stopping zap spider of client ${clientId}: ${err}`);
@@ -253,7 +253,28 @@ export async function ajaxStart(clientId: string | undefined, url: string, confi
 		// Only support firefox-headless for now
 		let result = await client.ajaxSpider.setOptionBrowserId("firefox-headless");
 		if (result.Result !== "OK") {
-			mainProc.info(`Failed to set ajax scan option of client: ${clientId}`);
+			mainProc.info(`Failed to set ajax scan browser id of client: ${clientId}`);
+			await stopZapClient(clientId);
+			return undefined;
+		}
+
+		result = await client.ajaxSpider.setOptionNumberOfBrowsers("1");
+		if (result.Result !== "OK") {
+			mainProc.info(`Failed to set ajax scan number of browsers of client: ${clientId}`);
+			await stopZapClient(clientId);
+			return undefined;
+		}
+
+		result = await client.ajaxSpider.setOptionMaxCrawlDepth("5");
+		if (result.Result !== "OK") {
+			mainProc.info(`Failed to set ajax scan max crawl depth of client: ${clientId}`);
+			await stopZapClient(clientId);
+			return undefined;
+		}
+
+		result = await client.ajaxSpider.setOptionMaxDuration("5");
+		if (result.Result !== "OK") {
+			mainProc.info(`Failed to set ajax scan max duration of client: ${clientId}`);
 			await stopZapClient(clientId);
 			return undefined;
 		}
@@ -265,7 +286,7 @@ export async function ajaxStart(clientId: string | undefined, url: string, confi
 			return undefined;
 		}
 
-		mainProc.info("Ajax scan started successfully");
+		mainProc.info(`Ajax scan of client ${clientId} started successfully`);
 		return clientId;
 	} catch (err) {
 		mainProc.error(`Error while init zap ajax: ${err}`);
@@ -362,7 +383,6 @@ export async function passiveStart(url: string, exploreType: "spider" | "ajax", 
 			return undefined;
 		}
 
-		// enableAllTags
 		result = await client.requestPromise("/pscan/action/enableAllTags/");
 		if (result.Result !== "OK") {
 			mainProc.info("Failed to enable passive tags - Stopping client");
