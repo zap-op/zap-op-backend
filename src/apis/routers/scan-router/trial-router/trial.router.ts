@@ -29,7 +29,7 @@ export function getTrialRouter(): Router {
 					maxChildren: 0,
 					recurse: true,
 					contextName: "",
-					subtreeOnly: true,
+					subtreeOnly: false,
 				},
 				true,
 				true,

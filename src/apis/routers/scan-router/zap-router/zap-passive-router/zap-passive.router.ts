@@ -41,7 +41,7 @@ export function getZapPassiveRouter(): Router {
 					},
 					subtreeOnly: {
 						type: "boolean",
-						default: true,
+						default: false,
 					},
 				},
 			},
@@ -58,7 +58,7 @@ export function getZapPassiveRouter(): Router {
 					},
 					subtreeOnly: {
 						type: "boolean",
-						default: true,
+						default: false,
 					},
 				},
 			},

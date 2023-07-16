@@ -42,7 +42,7 @@ export function getZapActiveRouter(): Router {
 					},
 					subtreeOnly: {
 						type: "boolean",
-						default: true,
+						default: false,
 					},
 				},
 			},
@@ -59,7 +59,7 @@ export function getZapActiveRouter(): Router {
 					},
 					subtreeOnly: {
 						type: "boolean",
-						default: true,
+						default: false,
 					},
 				},
 			},

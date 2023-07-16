@@ -68,7 +68,7 @@ export const zapSpiderScanSessionModel = scanSessionModel.discriminator<TZapSpid
 			},
 			subtreeOnly: {
 				type: Schema.Types.Boolean,
-				default: true,
+				default: false,
 			},
 		},
 	}),
@@ -88,7 +88,7 @@ export const zapAjaxScanSessionModel = scanSessionModel.discriminator<TZapAjaxSc
 			},
 			subtreeOnly: {
 				type: Schema.Types.Boolean,
-				default: true,
+				default: false,
 			},
 		},
 	}),
@@ -117,7 +117,7 @@ export const zapPassiveScanSessionModel = scanSessionModel.discriminator<TZapPas
 			},
 			subtreeOnly: {
 				type: Schema.Types.Boolean,
-				default: true,
+				default: false,
 			},
 		},
 		ajaxConfig: {
@@ -131,7 +131,7 @@ export const zapPassiveScanSessionModel = scanSessionModel.discriminator<TZapPas
 			},
 			subtreeOnly: {
 				type: Schema.Types.Boolean,
-				default: true,
+				default: false,
 			},
 		},
 	}),
@@ -160,7 +160,7 @@ export const zapActiveScanSessionModel = scanSessionModel.discriminator<TZapActi
 			},
 			subtreeOnly: {
 				type: Schema.Types.Boolean,
-				default: true,
+				default: false,
 			},
 		},
 		ajaxConfig: {
@@ -174,7 +174,7 @@ export const zapActiveScanSessionModel = scanSessionModel.discriminator<TZapActi
 			},
 			subtreeOnly: {
 				type: Schema.Types.Boolean,
-				default: true,
+				default: false,
 			},
 		},
 		scanConfig: {

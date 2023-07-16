@@ -39,7 +39,7 @@ export function getZapSpiderRouter(): Router {
 					},
 					subtreeOnly: {
 						type: "boolean",
-						default: true,
+						default: false,
 					},
 				},
 			},
