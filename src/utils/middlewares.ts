@@ -29,13 +29,16 @@ export function authenAccessMdw(req: JWTRequest, res: Response, next: NextFuncti
 	if (!req.accessToken && !req.refreshToken) return res.status(400).send(LOGIN_STATUS.TOKEN_NOT_FOUND);
 
 	if (!req.accessToken) {
-		const newAccessToken = Object.assign({}, req.refreshToken, { type: TOKEN_TYPE.ACCESS });
+		const newAccessToken = Object.assign({}, req.refreshToken, {
+			type: TOKEN_TYPE.ACCESS,
+		});
 		delete newAccessToken.exp;
 
 		req.accessToken = newAccessToken;
-		res.cookie(TOKEN_TYPE.ACCESS, signJwt(newAccessToken, ACCESS_TOKEN_MAX_AGE), { maxAge: ACCESS_TOKEN_MAX_AGE });
+		res.cookie(TOKEN_TYPE.ACCESS, signJwt(newAccessToken, ACCESS_TOKEN_MAX_AGE), {
+			maxAge: ACCESS_TOKEN_MAX_AGE,
+		});
 	}
-
 	next();
 }
 

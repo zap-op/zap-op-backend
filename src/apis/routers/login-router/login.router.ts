@@ -4,6 +4,7 @@ import { signJwt } from "../../../utils/crypto";
 import { userModel } from "../../../models/user.model";
 import { LOGIN_STATUS, ACCESS_TOKEN_MAX_AGE, REFRESH_TOKEN_MAX_AGE, TOKEN_TYPE, GgUserData } from "../../../utils/types";
 import { mainProc } from "../../../services/logging.service";
+import { JWTRequest, authenAccessMdw, parseAccessTokenMdw, parseRefreshTokenMdw } from "../../../utils/middlewares";
 
 export function getLoginRouter(): Router {
 	const loginRouter = Router();
@@ -86,6 +87,10 @@ export function getLoginRouter(): Router {
 			});
 		}
 		res.status(200).send(LOGIN_STATUS.LOGIN_SUCCESS);
+	});
+
+	loginRouter.post("/refreshToken", parseAccessTokenMdw(), parseRefreshTokenMdw(), authenAccessMdw, async (req, res) => {
+		res.status(200).send(LOGIN_STATUS.REFRESH_TOKEN_SUCCESSFULLY);
 	});
 
 	return loginRouter;
