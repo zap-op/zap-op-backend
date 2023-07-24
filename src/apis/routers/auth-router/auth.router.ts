@@ -2,25 +2,25 @@ import { Router } from "express";
 import { isOnProduction, isValidGoogleIDToken } from "../../../utils/validator";
 import { signJwt } from "../../../utils/crypto";
 import { userModel } from "../../../models/user.model";
-import { LOGIN_STATUS, ACCESS_TOKEN_MAX_AGE, REFRESH_TOKEN_MAX_AGE, TOKEN_TYPE, GgUserData } from "../../../utils/types";
+import { AUTH_STATUS, ACCESS_TOKEN_MAX_AGE, REFRESH_TOKEN_MAX_AGE, TOKEN_TYPE, GgUserData } from "../../../utils/types";
 import { mainProc } from "../../../services/logging.service";
-import { JWTRequest, authenAccessMdw, parseAccessTokenMdw, parseRefreshTokenMdw } from "../../../utils/middlewares";
+import { authenAccessMdw, parseAccessTokenMdw, parseRefreshTokenMdw } from "../../../utils/middlewares";
 
-export function getLoginRouter(): Router {
-	const loginRouter = Router();
+export function getAuthRouter(): Router {
+	const authRouter = Router();
 
-	loginRouter.post("/", async (req, res) => {
-		if (!req.cookies[TOKEN_TYPE.GOOGLE] || typeof req.cookies[TOKEN_TYPE.GOOGLE] !== "string") return res.status(400).send(LOGIN_STATUS.TOKEN_NOT_FOUND);
+	authRouter.post("/login", async (req, res) => {
+		if (!req.cookies[TOKEN_TYPE.GOOGLE] || typeof req.cookies[TOKEN_TYPE.GOOGLE] !== "string") return res.status(400).send(AUTH_STATUS.TOKEN_NOT_FOUND);
 
 		let googleData = undefined;
 		try {
 			googleData = await isValidGoogleIDToken(req.cookies[TOKEN_TYPE.GOOGLE]);
 		} catch (err) {
 			mainProc.error(`Error while validating Google token: ${err}`);
-			return res.status(400).send(LOGIN_STATUS.TOKEN_INVALID);
+			return res.status(400).send(AUTH_STATUS.TOKEN_INVALID);
 		}
 
-		if (!googleData) return res.status(400).send(LOGIN_STATUS.TOKEN_INVALID);
+		if (!googleData) return res.status(400).send(AUTH_STATUS.TOKEN_INVALID);
 
 		const userObj: GgUserData = {
 			sub: googleData.sub,
@@ -41,17 +41,17 @@ export function getLoginRouter(): Router {
 				const userByEmail = await userModel.findOne({
 					email: userObj.email,
 				});
-				if (userByEmail) return res.status(400).send(LOGIN_STATUS.EMAIL_ALREADY_USED);
+				if (userByEmail) return res.status(400).send(AUTH_STATUS.EMAIL_ALREADY_USED);
 
 				const newUser = new userModel(userObj);
 				userId = (await newUser.save()).id;
 			} else {
-				if (userBySub.email !== userObj.email) return res.status(400).send(LOGIN_STATUS.USER_ALREADY_LINKED);
+				if (userBySub.email !== userObj.email) return res.status(400).send(AUTH_STATUS.USER_ALREADY_LINKED);
 				userId = userBySub.id;
 			}
 		} catch (error) {
 			mainProc.error(`Error while adding new user: ${error}`);
-			return res.status(500).send(LOGIN_STATUS.USER_ADD_FAILED);
+			return res.status(500).send(AUTH_STATUS.USER_ADD_FAILED);
 		}
 
 		const accessToken = signJwt(
@@ -86,12 +86,19 @@ export function getLoginRouter(): Router {
 				maxAge: REFRESH_TOKEN_MAX_AGE,
 			});
 		}
-		res.status(200).send(LOGIN_STATUS.LOGIN_SUCCESS);
+		res.status(200).send(AUTH_STATUS.LOGIN_SUCCESS);
 	});
 
-	loginRouter.post("/refreshToken", parseAccessTokenMdw(), parseRefreshTokenMdw(), authenAccessMdw, async (req, res) => {
-		res.status(200).send(LOGIN_STATUS.REFRESH_TOKEN_SUCCESSFULLY);
+	authRouter.post("/refreshToken", parseAccessTokenMdw(), parseRefreshTokenMdw(), authenAccessMdw, async (req, res) => {
+		res.status(200).send(AUTH_STATUS.REFRESH_TOKEN_SUCCESSFULLY);
 	});
 
-	return loginRouter;
+	authRouter.post("/logout", parseAccessTokenMdw(), parseRefreshTokenMdw(), authenAccessMdw, async (req, res) => {
+		res.clearCookie(TOKEN_TYPE.ACCESS) //
+			.clearCookie(TOKEN_TYPE.REFRESH)
+			.status(200)
+			.send(AUTH_STATUS.LOGOUT_SUCCESS);
+	});
+
+	return authRouter;
 }
