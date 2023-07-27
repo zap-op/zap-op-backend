@@ -35,6 +35,7 @@ export function getMgmtRouter(): Router {
 			const targets = await targetModel
 				.find({
 					userId: req.accessToken!.userId,
+					isDeleted: false,
 				})
 				.sort({
 					updatedAt: -1,
@@ -89,10 +90,7 @@ export function getMgmtRouter(): Router {
 				return res.status(400).send(MGMT_STATUS.TARGET_FIND_FAILED);
 			}
 
-			const trashedTarget = new targetTrashModel(target.toObject());
-
-			await trashedTarget.save();
-			await target.deleteOne();
+			await target.set("isDeleted", true).save();
 
 			return res.status(200).send(MGMT_STATUS.TARGET_MOVED_TO_TRASH);
 		} catch (error) {

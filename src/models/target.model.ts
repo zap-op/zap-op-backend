@@ -24,6 +24,10 @@ const targetSchema = new database!.Schema<TTargetModel>(
 		tag: {
 			type: [Schema.Types.String],
 		},
+		isDeleted: {
+			type: Schema.Types.Boolean,
+			default: false,
+		},
 	},
 	{
 		timestamps: {
