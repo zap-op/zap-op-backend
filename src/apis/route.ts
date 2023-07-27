@@ -5,7 +5,7 @@ import { Express } from "express-serve-static-core";
 import { authenAccessMdw, parseAccessTokenMdw, parseRefreshTokenMdw } from "../utils/middlewares";
 
 export function initRouter(app: Express): void {
-	app.use("/", getAuthRouter());
+	app.use("/auth", getAuthRouter());
 	app.use("/management", parseAccessTokenMdw(), parseRefreshTokenMdw(), authenAccessMdw, getMgmtRouter());
 	app.use("/scan", getScanRouter());
 }
