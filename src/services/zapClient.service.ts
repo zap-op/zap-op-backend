@@ -250,8 +250,9 @@ export async function ajaxStart(clientId: string | undefined, url: string, confi
 	try {
 		const client = zapClients.get(clientId);
 
-		// Only support firefox-headless for now
-		let result = await client.ajaxSpider.setOptionBrowserId("firefox-headless");
+		// Ajax Spider add-on version 23.15 have bug that cannot start with firefox -> change to chrome instead.
+		// Ajax Spider add-on version 23.10 could start with firefox but there are no way to rollback add-on version.
+		let result = await client.ajaxSpider.setOptionBrowserId("chrome-headless");
 		if (result.Result !== "OK") {
 			mainProc.info(`Failed to set ajax scan browser id of client: ${clientId}`);
 			await stopZapClient(clientId);

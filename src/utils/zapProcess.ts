@@ -8,7 +8,7 @@ import { zapReturnUsedPort } from "../services/zapMonitor.service";
 
 if (!process.env.ZAP_APIKEY) throw "ZAP_APIKEY not found";
 
-const ZAP_ROOT = path.join(dirName(import.meta), "..", "..", "ZAP_2.12.0");
+const ZAP_ROOT = path.join(dirName(import.meta), "..", "..", "ZAP_2.13.0");
 const ZAP_EXE = path.join(ZAP_ROOT, os.type() === "Windows_NT" ? "zap.bat" : "zap.sh");
 const ZAP_OPTS = ["-daemon", "-addoninstallall", "-addonupdate", "-config", `api.key=${process.env.ZAP_APIKEY}`];
 const ZAP_SESSIONS_DIR = path.join(ZAP_ROOT, "zap-session");

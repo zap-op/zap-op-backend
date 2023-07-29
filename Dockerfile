@@ -1,4 +1,4 @@
-FROM owasp/zap2docker-stable:2.12.0 as zap
+FROM owasp/zap2docker-stable:2.13.0 as zap
 FROM ubuntu:23.04
 
 RUN apt-get update && apt-get upgrade -y
@@ -13,8 +13,8 @@ COPY . .
 RUN npm install -g npm@latest && npm install && npm run build
 
 # Get ZAP addons
-COPY --from=zap /zap ./ZAP_2.12.0
-RUN ./ZAP_2.12.0/zap.sh -cmd -addoninstallall -addonupdate
+COPY --from=zap /zap ./ZAP_2.13.0
+RUN ./ZAP_2.13.0/zap.sh -cmd -addoninstallall -addonupdate
 
 EXPOSE 8888
 
