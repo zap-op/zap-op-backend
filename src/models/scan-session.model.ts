@@ -90,6 +90,16 @@ export const zapAjaxScanSessionModel = scanSessionModel.discriminator<TZapAjaxSc
 				type: Schema.Types.Boolean,
 				default: false,
 			},
+			maxCrawlDepth: {
+				type: Schema.Types.Number,
+				min: 0,
+				default: 5,
+			},
+			maxDuration: {
+				type: Schema.Types.Number,
+				min: 0,
+				default: 5,
+			},
 		},
 	}),
 );
@@ -133,6 +143,16 @@ export const zapPassiveScanSessionModel = scanSessionModel.discriminator<TZapPas
 				type: Schema.Types.Boolean,
 				default: false,
 			},
+			maxCrawlDepth: {
+				type: Schema.Types.Number,
+				min: 0,
+				default: 5,
+			},
+			maxDuration: {
+				type: Schema.Types.Number,
+				min: 0,
+				default: 5,
+			},
 		},
 	}),
 );
@@ -175,6 +195,16 @@ export const zapActiveScanSessionModel = scanSessionModel.discriminator<TZapActi
 			subtreeOnly: {
 				type: Schema.Types.Boolean,
 				default: false,
+			},
+			maxCrawlDepth: {
+				type: Schema.Types.Number,
+				min: 0,
+				default: 5,
+			},
+			maxDuration: {
+				type: Schema.Types.Number,
+				min: 0,
+				default: 5,
 			},
 		},
 		scanConfig: {

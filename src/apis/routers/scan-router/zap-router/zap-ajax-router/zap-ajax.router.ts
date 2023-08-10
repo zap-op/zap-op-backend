@@ -36,6 +36,16 @@ export function getZapAjaxRouter(): Router {
 						type: "boolean",
 						default: false,
 					},
+					maxCrawlDepth: {
+						type: "integer",
+						minimum: 0,
+						default: 5,
+					},
+					maxDuration: {
+						type: "integer",
+						minimum: 0,
+						default: 5,
+					},
 				},
 			},
 		},

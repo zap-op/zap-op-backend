@@ -5,7 +5,7 @@ import { mainProc } from "./logging.service";
 import { startZapProcess, ZAP_SESSION_TYPES } from "../utils/zapProcess";
 import crypto from "crypto";
 import { zapGetAvailablePort } from "./zapMonitor.service";
-import { isInRiskLevelEnum, RiskLevel, TAlertDetail, TAlertsByRisk, TRisk, TZapAjaxStreamStatus } from "../utils/types";
+import { isInRiskLevelEnum, RiskLevel, TAlertDetail, TAlertsByRisk, TRisk, TZapAjaxScanConfig, TZapAjaxStreamStatus } from "../utils/types";
 import { sleep } from "../utils/system";
 
 const ZAP_POLL_DELAY = 5000;
@@ -237,7 +237,7 @@ export async function spiderFullResults(
 // END ZAP SPIDER
 
 // BEGIN ZAP AJAX
-export async function ajaxStart(clientId: string | undefined, url: string, config: any): Promise<string | undefined> {
+export async function ajaxStart(clientId: string | undefined, url: string, config: TZapAjaxScanConfig["scanConfig"]): Promise<string | undefined> {
 	let createNewClient = false;
 	if (clientId === undefined) {
 		clientId = await newPrivateZapClient();
@@ -266,14 +266,14 @@ export async function ajaxStart(clientId: string | undefined, url: string, confi
 			return undefined;
 		}
 
-		result = await client.ajaxSpider.setOptionMaxCrawlDepth("5");
+		result = await client.ajaxSpider.setOptionMaxCrawlDepth(config.maxCrawlDepth);
 		if (result.Result !== "OK") {
 			mainProc.info(`Failed to set ajax scan max crawl depth of client: ${clientId}`);
 			await stopZapClient(clientId);
 			return undefined;
 		}
 
-		result = await client.ajaxSpider.setOptionMaxDuration("5");
+		result = await client.ajaxSpider.setOptionMaxDuration(config.maxDuration);
 		if (result.Result !== "OK") {
 			mainProc.info(`Failed to set ajax scan max duration of client: ${clientId}`);
 			await stopZapClient(clientId);
