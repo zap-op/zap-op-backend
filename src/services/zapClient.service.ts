@@ -122,7 +122,7 @@ export async function spiderStart(clientId: string | undefined, url: string, con
 	}
 
 	try {
-		const result = await zapClients.get(clientId).spider.scan(url, config.maxChildren, config.recurse, config.contextName, config.subtreeOnly);
+		const result = await zapClients.get(clientId).spider.scan(url, config.maxChildren.toString(), config.recurse.toString(), config.contextName, config.subtreeOnly.toString());
 		mainProc.info(`Spider scan ${result.scan} of client ${clientId} started successfully`);
 		return { scanId: result.scan, clientId };
 	} catch (err) {
@@ -266,21 +266,21 @@ export async function ajaxStart(clientId: string | undefined, url: string, confi
 			return undefined;
 		}
 
-		result = await client.ajaxSpider.setOptionMaxCrawlDepth(config.maxCrawlDepth);
+		result = await client.ajaxSpider.setOptionMaxCrawlDepth(config.maxCrawlDepth ? config.maxCrawlDepth.toString() : "5");
 		if (result.Result !== "OK") {
 			mainProc.info(`Failed to set ajax scan max crawl depth of client: ${clientId}`);
 			await stopZapClient(clientId);
 			return undefined;
 		}
 
-		result = await client.ajaxSpider.setOptionMaxDuration(config.maxDuration);
+		result = await client.ajaxSpider.setOptionMaxDuration(config.maxDuration ? config.maxDuration.toString() : "5");
 		if (result.Result !== "OK") {
 			mainProc.info(`Failed to set ajax scan max duration of client: ${clientId}`);
 			await stopZapClient(clientId);
 			return undefined;
 		}
 
-		result = await client.ajaxSpider.scan(url, config.inScope, config.contextName, config.subtreeOnly);
+		result = await client.ajaxSpider.scan(url, config.inScope, config.contextName, config.subtreeOnly?.toString());
 		if (result.Result !== "OK") {
 			mainProc.info(`Failed to start ajax scan of client: ${clientId}`);
 			await stopZapClient(clientId);
