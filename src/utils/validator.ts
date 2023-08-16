@@ -22,12 +22,12 @@ export async function isValidURL(urlString: string): Promise<boolean> {
 
 if (!process.env.GOOGLE_CLIENT_ID) throw "GOOGLE_CLIENT_ID not found";
 
-const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+const client = new OAuth2Client(process.env["GOOGLE_CLIENT_ID"]);
 
 export async function isValidGoogleIDToken(token: string): Promise<TokenPayload | undefined> {
 	const ticket = await client.verifyIdToken({
 		idToken: token,
-		audience: process.env.GOOGLE_CLIENT_ID,
+		audience: process.env["GOOGLE_CLIENT_ID"],
 	});
 	return ticket.getPayload();
 }

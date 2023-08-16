@@ -19,7 +19,7 @@
         "express": "^4.18.2",
         "express-json-validator-middleware": "^3.0.1",
         "express-jwt": "^8.4.1",
-        "google-auth-library": "^8.9.0",
+        "google-auth-library": "^9.0.0",
         "json-schema": "^0.4.0",
         "jsonwebtoken": "^9.0.0",
         "mongoose": "^7.3.1",
