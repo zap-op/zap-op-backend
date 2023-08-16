@@ -94,10 +94,18 @@ export function getAuthRouter(): Router {
 	});
 
 	authRouter.post("/logout", parseAccessTokenMdw(), parseRefreshTokenMdw(), authenAccessMdw, async (req, res) => {
-		res.clearCookie(TOKEN_TYPE.ACCESS) //
-			.clearCookie(TOKEN_TYPE.REFRESH)
-			.status(200)
-			.send(AUTH_STATUS.LOGOUT_SUCCESS);
+		if (isOnProduction()) {
+			res.clearCookie(TOKEN_TYPE.ACCESS, {
+				domain: `.${process.env.CORS_ORIGIN}`,
+			}).clearCookie(TOKEN_TYPE.REFRESH, {
+				domain: `.${process.env.CORS_ORIGIN}`,
+			});
+		} else {
+			res.clearCookie(TOKEN_TYPE.ACCESS) //
+				.clearCookie(TOKEN_TYPE.REFRESH);
+		}
+
+		res.status(200).send(AUTH_STATUS.LOGOUT_SUCCESS);
 	});
 
 	return authRouter;
