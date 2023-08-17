@@ -11,7 +11,6 @@ if (!process.env.ZAP_APIKEY) throw "ZAP_APIKEY not found";
 const ZAP_ROOT = path.join(dirName(import.meta), "..", "..", "ZAP_2.13.0");
 const ZAP_EXE = path.join(ZAP_ROOT, os.type() === "Windows_NT" ? "zap.bat" : "zap.sh");
 const ZAP_OPTS = ["-daemon", "-addoninstallall", "-addonupdate", "-config", `api.key=${process.env.ZAP_APIKEY}`];
-const ZAP_SESSIONS_DIR = path.join(ZAP_ROOT, "zap-session");
 
 export enum ZAP_SESSION_TYPES {
 	SHARED = "shared",
@@ -21,8 +20,7 @@ export enum ZAP_SESSION_TYPES {
 let dbLockedOnZapInit = false;
 
 export async function startZapProcess(type: ZAP_SESSION_TYPES, clientId: string, port: number): Promise<void> {
-	const sessionDir = path.join(ZAP_SESSIONS_DIR, type, clientId);
-	const zapOptions = ZAP_OPTS.concat("-port", port.toString(), "-newsession", path.join(sessionDir, "data"));
+	const zapOptions = ZAP_OPTS.concat("-port", port.toString());
 
 	let loggerToUse: winston.Logger;
 	if (type === ZAP_SESSION_TYPES.SHARED) loggerToUse = zapProc;
